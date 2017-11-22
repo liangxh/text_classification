@@ -1,0 +1,10 @@
+*.pyc
+*~
+*.swp
+model.*
+checkpoint
+
+
+.DS_Store
+
+.idea/
