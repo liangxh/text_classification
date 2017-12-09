@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.rnn import GRUCell
-from tensorflow.python.ops.rnn import dynamic_rnn as rnn
 from tensorflow.python.ops.rnn import bidirectional_dynamic_rnn as bi_rnn
-import numpy as np
-from lib.common.dataset_process import DataSampleBatchGenerator
-from lib.data_service import api
+from tensorflow.python.ops.rnn import dynamic_rnn as rnn
+
+import data_service.api.data
 from lib.common.data_sample import DataSample
+from lib.common.dataset_process import DataSampleBatchGenerator
 
 
 def get_vocabulary_size(X):
@@ -54,12 +56,12 @@ class config(object):
     keep_prob = 0.8
     delta = 0.5
 
-train = api.data.get_dataset('imdb', 'train')
-test = api.data.get_dataset('imdb', 'test')
+
+train = data_service.api.data.get_dataset('imdb', 'train')
+test = data_service.api.data.get_dataset('imdb', 'test')
 
 train = map(lambda xy: DataSample(*xy), train)
 test = map(lambda xy: DataSample(*xy), test)
-
 
 vocabulary_size = get_vocabulary_size(X_train)
 X_test = fit_in_vocabulary(X_test, vocabulary_size)

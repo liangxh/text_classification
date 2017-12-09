@@ -25,3 +25,4 @@ class DataSampleBatch(object):
 
     def zero_pad(self):
         #self.padded_sample_list = map(lambda sample: sample.zero_pad(), self.data_sample_list)
+        pass
