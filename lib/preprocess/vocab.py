@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
+import re
+from model.config import config
 
 
 class TfIdf(object):
@@ -15,7 +17,7 @@ class TfIdf(object):
         return self.tf * math.log(N / self.df)
 
 
-class VocabularyBuilder(object):
+class VocabBuilder(object):
     scorer_module = TfIdf
 
     def __init__(self):
@@ -40,18 +42,45 @@ class VocabularyBuilder(object):
             else:
                 self.token_scorer[token] = self.scorer_module(count)
 
-    def export_report(self, filename):
-        with open(filename, 'r') as file_obj:
+    def export_report(self, key):
+        filename = config.path_to_vocab(key)
+        with open(filename, 'w') as file_obj:
             token_info_list = list()
 
             for token, scorer in self.token_scorer.items():
                 score = scorer.get(self.doc_num)
-                coverage = tfidf.tf / self.doc_size
-                token_info_list.append((token, score, coverage))
+                coverage = scorer.tf / self.doc_size
+                token_info_list.append((token, score, scorer.tf, coverage))
 
             token_info_list = sorted(token_info_list, key=lambda k: -k[1])
 
             total_coverage = 0.
-            for token, score, coverage in token_info_list:
+            for token, score, tf, coverage in token_info_list:
                 total_coverage += coverage
-                file_obj.write('{}\t{}\t{}\t{}\n'.format(token, score, coverage, total_coverage))
+                file_obj.write(u'{}\t{}\t{}\n'.format(token, int(tf), total_coverage).encode('utf8'))
+
+
+def load(key, n):
+    pattern_vocab = re.compile('^(\S+)\s*')
+    filename = config.path_to_vocab(key)
+    vocab_list = list()
+    with open(filename, 'r') as file_obj:
+        for line in file_obj:
+            res = pattern_vocab.search(line)
+            if res is None:
+                continue
+            vocab = res.group(1)
+            vocab_list.append(vocab)
+            if len(vocab_list) == n:
+                break
+    vocab_list = map(lambda v: v.decode('utf8'), vocab_list)
+    return vocab_list
+
+
+def _test():
+    vocab_list = load('us2', 10)
+    print vocab_list
+
+
+if __name__ == '__main__':
+    _test()

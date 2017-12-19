@@ -19,7 +19,7 @@ def generate(n, batch_size, shuffle=True):
 
 
 def test():
-    for indices in generate(11, 3, False):
+    for indices in generate(11, 3, True):
         print(indices)
 
 

@@ -1,0 +1,7 @@
+python -m scripts.task2.dataset_subset -i us -o us2 -n 2 -M train -l 4000
+python -m scripts.task2.prepare_tokenized_texts -k us2 -M train
+python main.py -k us2
+
+python -m scripts.task2.dataset_subset -i us -o us3 -n 3 -M train -l 6000
+python -m scripts.task2.prepare_tokenized_texts -k us3 -M train
+python main.py -k us3
