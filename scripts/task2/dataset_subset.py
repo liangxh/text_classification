@@ -19,7 +19,7 @@ def main():
     label_count = dict([(i, 0) for i in range(opts.top_n)])
     for i, label in enumerate(labels):
         if label < opts.top_n:
-            if label_count[label] < opts.len:
+            if opts.len is None or label_count[label] < opts.len:
                 idx.append(i)
                 label_count[label] += 1
 

@@ -2,7 +2,7 @@
 from lib.common import index_batch
 
 
-class DatasetIterator(object):
+class Dataset(object):
     def __init__(self, input_list, output_list):
         self.input_list = input_list
         self.output_list = output_list
