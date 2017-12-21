@@ -2,13 +2,11 @@
 from __future__ import print_function
 
 import copy
-from optparse import OptionParser
-
+import commandr
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.rnn import GRUCell
 from tensorflow.python.ops.rnn import dynamic_rnn as rnn
-
 from lib.dataset import task2
 from lib.preprocess import vocab
 from lib.word_embed.build import build_lookup_table, build_vocab_id_mapping
@@ -90,7 +88,8 @@ def input_list_to_batch(input_list, seq_len):
     return input_batch
 
 
-def run(
+@commandr.command('train')
+def train(
         task_key
         ):
     task_config = TaskConfig()
@@ -193,14 +192,5 @@ def run(
                 print('TRIAL: loss:{}, acc:{}'.format(trial_loss, trial_accuracy))
 
 
-def main():
-    optparser = OptionParser()
-    optparser.add_option('-k', '--key', dest='task_key')
-    opts, args = optparser.parse_args()
-
-    run(opts.task_key)
-
-
 if __name__ == '__main__':
-    main()
-
+    commandr.Run()
