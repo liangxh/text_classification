@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
 import re
-from model.config import config
 
 
 class TfIdf(object):
@@ -18,6 +17,9 @@ class TfIdf(object):
 
 
 class VocabBuilder(object):
+    """
+    統計數據集中各token的出現情況，生成報告
+    """
     scorer_module = TfIdf
 
     def __init__(self):
@@ -42,8 +44,10 @@ class VocabBuilder(object):
             else:
                 self.token_scorer[token] = self.scorer_module(count)
 
-    def export_report(self, key):
-        filename = config.path_to_vocab(key)
+    def export_report(self, filename):
+        """
+        導出字典統計報告
+        """
         with open(filename, 'w') as file_obj:
             token_info_list = list()
 
@@ -60,9 +64,11 @@ class VocabBuilder(object):
                 file_obj.write(u'{}\t{}\t{}\n'.format(token, int(tf), total_coverage).encode('utf8'))
 
 
-def load(key, n):
+def load(filename, n_vocab):
+    """
+    讀取字典報告中前n_vocab個詞
+    """
     pattern_vocab = re.compile('^(\S+)\s*')
-    filename = config.path_to_vocab(key)
     vocab_list = list()
     with open(filename, 'r') as file_obj:
         for line in file_obj:
@@ -71,16 +77,7 @@ def load(key, n):
                 continue
             vocab = res.group(1)
             vocab_list.append(vocab)
-            if len(vocab_list) == n:
+            if n_vocab is not None and len(vocab_list) >= n_vocab:
                 break
     vocab_list = map(lambda v: v.decode('utf8'), vocab_list)
     return vocab_list
-
-
-def _test():
-    vocab_list = load('us2', 10)
-    print vocab_list
-
-
-if __name__ == '__main__':
-    _test()

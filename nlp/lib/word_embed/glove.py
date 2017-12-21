@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import time
-import json
-from model.config import config
+
+from nlp.model.config import config
 
 
 class Glove(object):

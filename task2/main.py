@@ -7,11 +7,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.rnn import GRUCell
 from tensorflow.python.ops.rnn import dynamic_rnn as rnn
-from lib.dataset import task2
-from lib.preprocess import vocab
-from lib.word_embed.build import build_lookup_table, build_vocab_id_mapping
-from lib.word_embed.glove import Glove
-from model.dataset import Dataset
+
+import task2
+from nlp.lib.word_embed.glove import Glove
+from nlp.lib.word_embed.build import build_lookup_table, build_vocab_id_mapping
+from nlp.model.dataset import Dataset
 
 
 class TaskConfig(object):
@@ -27,7 +27,7 @@ class TaskConfig(object):
     validate_interval = 1
     batch_size = 64
     output_dim = None
-    seq_len = None
+    seq_len = 50
 
 
 def build_neural_network(lookup_table):
@@ -88,39 +88,45 @@ def input_list_to_batch(input_list, seq_len):
     return input_batch
 
 
+def load_embedding(key, config):
+    # 加載詞嵌入相關數據
+    vocab_list = task2.dataset.load_vocab(key, config.n_vocab)
+    embedding = Glove(config.glove_key, config.dim_embed)
+
+    # 加載詞嵌入相關模塊
+    vocab_id_mapping = build_vocab_id_mapping(vocab_list)
+    lookup_table = build_lookup_table(vocab_list, embedding)
+    return vocab_id_mapping, lookup_table
+
+
+def load_and_prepare_dataset(key, mode, vocab_id_mapping, output=True):
+    # 讀取原始數據
+    tokenized = task2.dataset.load_tokenized(key, mode)
+    lexicon_feat = task2.dataset.load_lexicon_feature(key, mode)
+
+    # 數據加工
+    token_id_seq = map(vocab_id_mapping.map, tokenized)
+
+    # 根據是不需要
+    if not output:
+        return Dataset(token_id_seq, lexicon_feat)
+    else:
+        labels = task2.dataset.load_labels(key, mode)
+        return Dataset(token_id_seq, lexicon_feat, labels)
+
+
 @commandr.command('train')
 def train(
         task_key
         ):
     task_config = TaskConfig()
 
-    # 加載訓練數據
-    train_tokenized = task2.load_tokenized(task_key, 'train')
-    train_labels = task2.load_labels(task_key, 'train')
+    vocab_id_mapping, lookup_table = load_embedding(task_key, task_config)
 
-    trial_tokenized = task2.load_tokenized(task_key, 'trial')
-    trial_labels = task2.load_labels(task_key, 'trial')
+    TaskConfig.output_dim = task2.dataset.get_output_dim(task_key)
 
-    # 加載詞嵌入相關模塊
-    vocab_list = vocab.load(task_key, task_config.n_vocab)
-    embedding = Glove(task_config.glove_key, task_config.dim_embed)
-
-    vocab_id_mapping = build_vocab_id_mapping(vocab_list)
-    lookup_table = build_lookup_table(vocab_list, embedding)
-
-    # 填充配置
-    TaskConfig.seq_len = max(
-        max(*map(len, train_tokenized)),
-        max(*map(len, trial_tokenized)),
-    ) + 1
-
-    TaskConfig.output_dim = max(*train_labels) + 1
-
-    train_token_id_seq = map(vocab_id_mapping.map, train_tokenized)
-    trial_token_id_seq = map(vocab_id_mapping.map, trial_tokenized)
-
-    dataset_train = Dataset(train_token_id_seq, train_labels)
-    dataset_trial = Dataset(trial_token_id_seq, trial_labels)
+    dataset_train = load_and_prepare_dataset(task_key, 'train', vocab_id_mapping)
+    dataset_trial = load_and_prepare_dataset(task_key, 'trial', vocab_id_mapping)
 
     # 生成神經網絡
     ph_vocab_id_seq, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
@@ -155,13 +161,12 @@ def train(
     def step_trial(dataset):
         loss = 0.
         count_correct = 0.
-        label_list = list()
         for input_list, output_list in dataset.batch_iterate(task_config.batch_size, shuffle=False):
             seq_len = map(len, input_list)
             input_batch = input_list_to_batch(input_list, TaskConfig.seq_len)
 
-            partial_loss, partial_count_correct, partial_label = sess.run(
-                [ret_loss, ret_count_correct, ret_label],
+            partial_loss, partial_count_correct = sess.run(
+                [ret_loss, ret_count_correct],
                 feed_dict={
                     ph_vocab_id_seq: input_batch,
                     ph_label_gold: output_list,
@@ -172,11 +177,10 @@ def train(
             n_sample = len(input_list)
             count_correct += partial_count_correct
             loss += partial_loss * n_sample
-            label_list.extend(partial_label)
 
         accuracy = count_correct / dataset.n_sample
         loss /= dataset.n_sample
-        return accuracy, loss, label_list
+        return accuracy, loss
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())

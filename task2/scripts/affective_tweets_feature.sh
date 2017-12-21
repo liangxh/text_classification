@@ -5,17 +5,19 @@ MODE=$1
 KEY=$2
 
 DIR_LAB=${HOME}/lab
-PATH_TO_TEXT=${DIR_LAB}/task2/${MODE}/${KEY}.text
-PATH_TO_TEXT_ARFF=${DIR_LAB}/task2/${MODE}/${KEY}.arff
-PATH_TO_VEC_ARFF=${DIR_LAB}/task2/${MODE}/${KEY}.lexicon_feat.arff
-PATH_TO_VEC=${DIR_LAB}/task2/${MODE}/${KEY}.lexicon_feat
+DIR_TASK2=${DIR_LAB}/task2
+
+PATH_TO_TEXT=${DIR_TASK2}/${MODE}/${KEY}.text
+PATH_TO_TEXT_ARFF=${DIR_TASK2}/${MODE}/${KEY}.arff
+PATH_TO_VEC_ARFF=${DIR_TASK2}/${MODE}/${KEY}.lexicon_feat.arff
+PATH_TO_VEC=${DIR_TASK2}/${MODE}/${KEY}.lexicon_feat
 
 WEKA_JAR=${DIR_LAB}/weka/weka/weka.jar
 
 echo 'generating .arff for text..'
 
 cd ${DIR_LAB}/text_classification
-python -m scripts.task2.process_arff text -i ${PATH_TO_TEXT} -o ${PATH_TO_TEXT_ARFF}
+python -m task2.scripts.process_arff text -i ${PATH_TO_TEXT} -o ${PATH_TO_TEXT_ARFF}
 
 
 echo 'building lexicon feature vector...'
@@ -29,7 +31,7 @@ java -Xmx4G -cp ${WEKA_JAR} weka.Run weka.filters.unsupervised.attribute.TweetTo
 
 echo 'transforming .arff of lexicon feature to customized format'
 
-python -m scripts.task2.process_arff vec -i ${PATH_TO_VEC_ARFF} -o ${PATH_TO_VEC}
+python -m task2.scripts.process_arff vec -i ${PATH_TO_VEC_ARFF} -o ${PATH_TO_VEC}
 
 echo 'remove temporary files'
 

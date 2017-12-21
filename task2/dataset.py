@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
-from model.config import config
+
+from nlp.lib.preprocess import vocab
+from task2.model.config import config
 
 
 def path_to_texts(key, mode):
@@ -17,6 +19,10 @@ def path_to_tokenized(key, mode):
 
 def path_to_lexicon_feat(key, mode):
     return os.path.join(config.dir_task2, mode, '{}.lexicon_feat'.format(key))
+
+
+def path_to_vocab(key):
+    return os.path.join(config.dir_task2, 'vocab', key)
 
 
 def load_texts(key, mode):
@@ -49,6 +55,7 @@ def load_tokenized(key, mode):
 
 def load_lexicon_feature(key, mode):
     path = path_to_lexicon_feat(key, mode)
+    vecs = list()
     with open(path, 'r') as file_obj:
         for line in file_obj:
             line = line.strip()
@@ -59,6 +66,26 @@ def load_lexicon_feature(key, mode):
     return vecs
 
 
-def load(key, mode):
-    train_tokenized = task2.load_tokenized(task_key, 'train')
-    train_labels = task2.load_labels(task_key, 'train')
+def load_vocab(key, n_vocab):
+    path = path_to_vocab(key)
+    return vocab.load(path, n_vocab)
+
+
+def get_max_seq_len(key, mode):
+    path = path_to_texts(key, mode)
+    max_len = 0
+    with open(path, 'r') as file_obj:
+        for line in file_obj:
+            max_len = max(max_len, len(line.split(' ')))
+    return max_len
+
+
+def get_output_dim(key):
+    return max(*load_labels(key, 'train')) + 1
+
+
+def get_lexicon_feature_dim(key):
+    path = path_to_lexicon_feat(key, 'train')
+    line = open(path, 'r')
+    dim = len(line.split('\t'))
+    return dim

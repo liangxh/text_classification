@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
-from lib.preprocess.tokenizer import tokenize
+from nltk.tokenize import TweetTokenizer
+
+tokenizer = TweetTokenizer()
 
 TOKEN_NUM = '<NUM>'
 pattern_num = re.compile(r'\d+')
@@ -10,7 +12,7 @@ exclude_set = {u'\ufe0f', }
 def prepare_text(text):
     if isinstance(text, str):
         text = text.decode('utf8')
-    seq = tokenize(text)
+    seq = tokenizer.tokenize(text)
     seq = map(unicode.lower, seq)
     tokens = list()
     for i, token in enumerate(seq):
@@ -19,7 +21,7 @@ def prepare_text(text):
         elif token in exclude_set:
             pass
         else:
-            tokens.append(token)
+            tokens.append(token.replace(' ', ''))
     return tokens
 
 

@@ -5,6 +5,9 @@ import commandr
 
 @commandr.command('text')
 def text_to_arff(input_filename, output_filename):
+    """
+    將文本集合生成對應arff文件
+    """
     with open(input_filename, 'r') as in_obj, open(output_filename, 'w') as out_obj:
         out_obj.write('@relation \'RELATION\'\n')
         out_obj.write('@attribute content string\n')
@@ -18,6 +21,10 @@ def text_to_arff(input_filename, output_filename):
 
 @commandr.command('first_text')
 def first_text_to_arff(input_filename, output_filename):
+    """
+    提取各行第一列的內容，生成對應arff文件
+    為單詞生成lexicon feature時用
+    """
     with open(input_filename, 'r') as in_obj, open(output_filename, 'w') as out_obj:
         out_obj.write('@relation \'RELATION\'\n')
         out_obj.write('@attribute content string\n')
@@ -32,6 +39,10 @@ def first_text_to_arff(input_filename, output_filename):
 
 @commandr.command('vec')
 def arff_feat_to_vec(input_filename, output_filename):
+    """
+    將AffectiveTweets生成的特征向量.arff文件轉換成自定義格式的文件
+    每一行對應一句的特征向量
+    """
     n_attribute = -1  # 第一列為content
     data_encountered = False
     pattern_attribute = re.compile('^(\d+) ([-+]?\d+(?:\.\d+)?)$')
