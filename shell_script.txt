@@ -1,5 +1,5 @@
 python -m task2.scripts.dataset tokenize -k us -m train
 python -m task2.scripts.dataset vocab -k us
 python -m task2.scripts.dataset lexicon -k us -m train
-python -m task2.scripts.dataset subset -i us -o us2 -n 2 -m train -l 4000
-python -m task2.scripts.dataset subset -i us -o us3 -n 3 -m train -l 4000
+python -m task2.scripts.dataset subset -i us -o us2 -N 2 -m train -l 4000
+python -m task2.scripts.dataset subset -i us -o us3 -N 3 -m train -l 4000

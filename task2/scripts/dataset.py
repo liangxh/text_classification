@@ -46,6 +46,9 @@ def dataset_subset(in_key, out_key, n, mode, length=None):
     """
     生成數據集子集, 為便於調試神經網絡用
     """
+    n = int(n)
+    length = int(length) if length is not None else None
+
     labels = dataset.load_labels(in_key, mode)
     idx_list = list()
     label_count = dict([(i, 0) for i in range(n)])
