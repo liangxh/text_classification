@@ -12,5 +12,8 @@ class Config(object):
     def path_to_glove_index(self, key, dim):
         return os.path.join(self.dir_glove, '{}.{}d.index'.format(key, dim))
 
+    path_to_word2vec_frederic_godin = os.path.join(dir_lab, 'word2vec', 'frederic_godin.model')
+    path_to_word2vec_frederic_godin_index = os.path.join(dir_lab, 'word2vec', 'frederic_godin.index')
+
 
 config = Config()
