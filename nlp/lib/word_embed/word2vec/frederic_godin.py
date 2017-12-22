@@ -1,17 +1,19 @@
-# -*- coding: utf-8-*-
+# -*- coding: utf-8 -*-
 import numpy as np
 import json
 from nlp.model.config import config
 
 
 class FredericGodinModel(object):
-    def __init__(self, index):
+    """
+    由于Frederic Godin提供的模塊過大, 需要首先為字典建立索引
+    """
+    def __init__(self, filename_index):
         self.file_model = open(config.path_to_word2vec_frederic_godin, 'r')
-
         header = self.file_model.readline()
         vocab_size, dim = map(int, header.split())
         self.dim = dim
-        self.index = index
+        self.index = json.load(open(filename_index, 'r'))
         self._binary_len = np.dtype(np.float32).itemsize * dim
 
     def get(self, vocab):
@@ -25,11 +27,6 @@ class FredericGodinModel(object):
             bytes_vec = self.file_model.read(self._binary_len)
             vec = np.fromstring(bytes_vec, dtype=np.float32)
             return vec
-
-    @classmethod
-    def load_by_specific_index(cls, filename):
-        index = json.load(open(filename, 'r'))
-        return cls(index)
 
     @classmethod
     def build_specific_index(

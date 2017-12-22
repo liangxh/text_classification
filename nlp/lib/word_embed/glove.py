@@ -8,10 +8,12 @@ from nlp.model.config import config
 
 class Glove(object):
 
-    def __init__(self, key, dim):
-        self.dim = dim
-        self.index = self.load_index(key, dim)
-        self.file_glove = open(config.path_to_glove(key, dim), 'r')
+    def __init__(self, key):
+        self.index = self.load_index(key)
+        self.file_glove = open(config.path_to_glove(key), 'r')
+
+        line = self.file_glove.readline()
+        self.dim = len(line.strip().split(' ')) - 1
 
     def get(self, vocab):
         if isinstance(vocab, str):
@@ -30,29 +32,29 @@ class Glove(object):
             return vec
 
     @classmethod
-    def dump_index(cls, index, key, dim):
-        json.dump(index, open(config.path_to_glove_index(key, dim), 'w'))
+    def dump_index(cls, index, key):
+        json.dump(index, open(config.path_to_glove_index(key), 'w'))
 
     @classmethod
-    def load_index(cls, key, dim):
-        path = config.path_to_glove_index(key, dim)
+    def load_index(cls, key):
+        path = config.path_to_glove_index(key)
         if os.path.exists(path):
             st = time.time()
             index = json.load(open(path, 'r'))
             print 'load index', time.time() - st
         else:
             st = time.time()
-            index = cls.build_index(key, dim)
+            index = cls.build_index(key)
             print 'build index:', time.time() - st
 
             st = time.time()
-            cls.dump_index(index, key, dim)
+            cls.dump_index(index, key)
             print 'write index:', time.time() - st
         return index
 
     @classmethod
-    def build_index(cls, key, dim):
-        path = config.path_to_glove(key, dim)
+    def build_index(cls, key):
+        path = config.path_to_glove(key)
         index = dict()
         with open(path, 'r') as file_obj:
             offset = 0
@@ -64,7 +66,7 @@ class Glove(object):
 
 
 def test():
-    glove = Glove('twitter', 25)
+    glove = Glove('twitter.25d')
     print glove.get('haha')
 
 
