@@ -9,7 +9,7 @@ def build_lexicon_feat(key, mode):
     生成lexicon feature，需要運行終端腳本，此處僅供提醒
     """
     print 'place execute the following command in the base'
-    print 'bash ${HOME}' + '/lab/text_classification/scripts/task2/affective_tweets_feature.sh {} {}'.format(mode, key)
+    print 'bash ${HOME}' + '/lab/text_classification/task2/scripts/affective_tweets_feature.sh {} {}'.format(mode, key)
 
 
 @commandr.command('tokenize')

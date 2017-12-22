@@ -86,6 +86,6 @@ def get_output_dim(key):
 
 def get_lexicon_feature_dim(key):
     path = path_to_lexicon_feat(key, 'train')
-    line = open(path, 'r')
+    line = open(path, 'r').readline()
     dim = len(line.split('\t'))
     return dim

@@ -17,8 +17,8 @@ from nlp.model.dataset import Dataset
 class TaskConfig(object):
     glove_key = 'twitter'
     dim_embed = 50
-    n_vocab = 8000
-    rnn_dim = 100
+    n_vocab = 4000
+    rnn_dim = 50
     learning_rate_initial = 0.01
     learning_rate_decay_rate = 1.
     learning_rate_decay_steps = 10
@@ -26,20 +26,22 @@ class TaskConfig(object):
     epochs = 5
     validate_interval = 1
     batch_size = 64
-    output_dim = None
     seq_len = 50
+    output_dim = None
+    lexicon_feat_dim = None
 
 
 def build_neural_network(lookup_table):
     model_config = TaskConfig()
 
     ph_label_gold = tf.placeholder(tf.int32, [None, ])
-    ph_vocab_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len])
+    ph_token_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len])
+    ph_lexicon_feat = tf.placeholder(tf.float32, [None, model_config.lexicon_feat_dim])
     ph_seq_len = tf.placeholder(tf.int32, [None, ])
     ph_dropout_keep_prob = tf.placeholder(tf.float32)
 
     embeddings = tf.Variable(np.asarray(lookup_table), trainable=True, dtype=tf.float32)
-    embedded = tf.nn.embedding_lookup(embeddings, ph_vocab_id_seq)
+    embedded = tf.nn.embedding_lookup(embeddings, ph_token_id_seq)
     rnn_outputs, rnn_last_states = rnn(
         GRUCell(model_config.rnn_dim),
         inputs=embedded,
@@ -49,9 +51,11 @@ def build_neural_network(lookup_table):
 
     rnn_output = tf.nn.dropout(rnn_last_states, ph_dropout_keep_prob)
 
-    w = tf.Variable(tf.truncated_normal([model_config.rnn_dim, model_config.output_dim], stddev=0.1))
-    b = tf.Variable(tf.constant(0., shape=[model_config.output_dim]))
-    y = tf.matmul(rnn_output, w) + b
+    dense_input = tf.concat([rnn_output, ph_lexicon_feat], axis=1)
+
+    w = tf.Variable(tf.truncated_normal([model_config.rnn_dim + model_config.lexicon_feat_dim, model_config.output_dim], stddev=0.1))
+    b = tf.Variable(tf.constant(0.1, shape=[model_config.output_dim]))
+    y = tf.matmul(dense_input, w) + b
 
     # 預測標籤
     label = tf.cast(tf.argmax(y, 1), tf.int32)
@@ -75,7 +79,7 @@ def build_neural_network(lookup_table):
                     )
     optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=global_step)
 
-    return ph_vocab_id_seq, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
+    return ph_token_id_seq, ph_lexicon_feat, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
         count_correct, loss, label, \
         optimizer
 
@@ -124,12 +128,13 @@ def train(
     vocab_id_mapping, lookup_table = load_embedding(task_key, task_config)
 
     TaskConfig.output_dim = task2.dataset.get_output_dim(task_key)
+    TaskConfig.lexicon_feat_dim = task2.dataset.get_lexicon_feature_dim(task_key)
 
     dataset_train = load_and_prepare_dataset(task_key, 'train', vocab_id_mapping)
     dataset_trial = load_and_prepare_dataset(task_key, 'trial', vocab_id_mapping)
 
     # 生成神經網絡
-    ph_vocab_id_seq, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
+    ph_token_id_seq, ph_lexicon_feat, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
         ret_count_correct, ret_loss, ret_label, \
         optimizer = \
         build_neural_network(lookup_table)
@@ -137,20 +142,21 @@ def train(
     def step_train(dataset):
         loss = 0.
         count_correct = 0.
-        for input_list, output_list in dataset.batch_iterate(task_config.batch_size):
-            seq_len = map(len, input_list)
-            input_batch = input_list_to_batch(input_list, TaskConfig.seq_len)
+        for token_id_seq, lexicon_feat, labels in dataset.batch_iterate(task_config.batch_size):
+            seq_len = map(len, token_id_seq)
+            token_id_batch = input_list_to_batch(token_id_seq, TaskConfig.seq_len)
 
             _, partial_loss, partial_count_correct = sess.run(
                 [optimizer, ret_loss, ret_count_correct],
                 feed_dict={
-                    ph_vocab_id_seq: input_batch,
-                    ph_label_gold: output_list,
+                    ph_token_id_seq: token_id_batch,
+                    ph_lexicon_feat: lexicon_feat,
+                    ph_label_gold: labels,
                     ph_seq_len: seq_len,
                     ph_dropout_keep_prob: 1.
                 }
             )
-            n_sample = len(input_list)
+            n_sample = len(labels)
             count_correct += partial_count_correct
             loss += partial_loss * n_sample
 
@@ -161,20 +167,21 @@ def train(
     def step_trial(dataset):
         loss = 0.
         count_correct = 0.
-        for input_list, output_list in dataset.batch_iterate(task_config.batch_size, shuffle=False):
-            seq_len = map(len, input_list)
-            input_batch = input_list_to_batch(input_list, TaskConfig.seq_len)
+        for token_id_seq, lexicon_feat, labels in dataset.batch_iterate(task_config.batch_size, shuffle=False):
+            seq_len = map(len, token_id_seq)
+            token_id_batch = input_list_to_batch(token_id_seq, TaskConfig.seq_len)
 
             partial_loss, partial_count_correct = sess.run(
                 [ret_loss, ret_count_correct],
                 feed_dict={
-                    ph_vocab_id_seq: input_batch,
-                    ph_label_gold: output_list,
+                    ph_token_id_seq: token_id_batch,
+                    ph_lexicon_feat: lexicon_feat,
+                    ph_label_gold: labels,
                     ph_seq_len: seq_len,
                     ph_dropout_keep_prob: 1.
                 }
             )
-            n_sample = len(input_list)
+            n_sample = len(labels)
             count_correct += partial_count_correct
             loss += partial_loss * n_sample
 
@@ -192,7 +199,7 @@ def train(
             print('TRAIN: loss:{}, acc:{}'.format(train_loss, train_accuracy))
 
             if (epoch + 1) % TaskConfig.validate_interval == 0:
-                trial_accuracy, trial_loss, label_list = step_trial(dataset_trial)
+                trial_accuracy, trial_loss = step_trial(dataset_trial)
                 print('TRIAL: loss:{}, acc:{}'.format(trial_loss, trial_accuracy))
 
 
