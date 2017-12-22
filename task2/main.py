@@ -102,8 +102,11 @@ def load_embedding(key, task_config):
         from nlp.lib.word_embed.glove import Glove
         embedding = Glove(task_config.embedding_key)
     elif task_config.embedding_algorithm == 'word2vec':
-        from nlp.lib.word_embed.word2vec.frederic_godin import FredericGodinModel
-        embedding = FredericGodinModel(config.path_to_frederic_godin_index(task_config.task_key))
+        if task_config.embedding_key == 'frederic_godin':
+            from nlp.lib.word_embed.word2vec.frederic_godin import FredericGodinModel
+            embedding = FredericGodinModel(config.path_to_frederic_godin_index)
+        else:
+            raise Exception
     else:
         raise Exception
 
