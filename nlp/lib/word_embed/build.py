@@ -28,7 +28,9 @@ def build_lookup_table(vocab_list, embedding):
     lookup_table.append(np.zeros(embedding.dim))  # embedding vector for END
     lookup_table.append(_build_random_vector(embedding.dim))  # embedding vector for UNKNOWN
     for vocab in vocab_list:
-        vec = embedding.get(vocab) or _build_random_vector(embedding.dim)
+        vec = embedding.get(vocab)
+        if vec is None:
+            vec = _build_random_vector(embedding.dim)
         lookup_table.append(vec)
     return lookup_table
 
