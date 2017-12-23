@@ -7,3 +7,6 @@ python -m task2.scripts.dataset vocab -k us2
 
 python -m task2.scripts.dataset subset -i us -o us3 -N 3 -m train -l 4000
 python -m task2.scripts.dataset vocab -k us2
+
+# 生成frederic godin模塊的索引
+python -m task2.scripts.word_embed fg -n 100000

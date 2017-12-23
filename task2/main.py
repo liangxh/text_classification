@@ -83,7 +83,7 @@ def build_neural_network(lookup_table):
 
     return ph_token_id_seq, ph_lexicon_feat, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
         count_correct, loss, label, \
-        optimizer
+        global_step, optimizer
 
 
 def input_list_to_batch(input_list, seq_len):
@@ -149,7 +149,7 @@ def train():
     # 生成神經網絡
     ph_token_id_seq, ph_lexicon_feat, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
         ret_count_correct, ret_loss, ret_label, \
-        optimizer = \
+        global_step, optimizer = \
         build_neural_network(lookup_table)
 
     def step_train(dataset):
@@ -204,6 +204,9 @@ def train():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+        # saver = tf.train.Saver(tf.global_variables())
+        best_dev_accuracy = 0.
+
         for epoch in range(task_config.epochs):
             print('epoch: {}\t'.format(epoch))
 
@@ -211,9 +214,16 @@ def train():
             train_accuracy, train_loss = step_train(dataset_train)
             print('TRAIN: loss:{}, acc:{}'.format(train_loss, train_accuracy))
 
+            current_step = tf.train.global_step(sess, global_step)
+
             if (epoch + 1) % TaskConfig.validate_interval == 0:
                 trial_accuracy, trial_loss = step_trial(dataset_trial)
                 print('TRIAL: loss:{}, acc:{}'.format(trial_loss, trial_accuracy))
+
+                if trial_accuracy > best_dev_accuracy:
+                    best_dev_accuracy = trial_accuracy
+                    # path = saver.save(sess, config.dir_train_checkpoint, global_step=current_step)
+                    # print('new checkpoint saved to {}'.format(path))
 
 
 if __name__ == '__main__':
