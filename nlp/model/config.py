@@ -13,7 +13,6 @@ class Config(object):
         return os.path.join(self.dir_glove, '{}.index'.format(key))
 
     path_to_word2vec_frederic_godin = os.path.join(dir_lab, 'word2vec', 'frederic_godin.model')
-    path_to_word2vec_frederic_godin_index = os.path.join(dir_lab, 'word2vec', 'frederic_godin.index')
 
 
 config = Config()

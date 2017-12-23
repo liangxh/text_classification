@@ -26,9 +26,7 @@ class TaskConfig(object):
     dim_embed = None
 
 
-def build_neural_network(lookup_table):
-    model_config = TaskConfig()
-
+def build_neural_network(model_config, lookup_table):
     ph_label_gold = tf.placeholder(tf.int32, [None, ])
     ph_token_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len])
     ph_lexicon_feat = tf.placeholder(tf.float32, [None, model_config.dim_lexicon_feat])
@@ -112,7 +110,7 @@ def train():
     ph_token_id_seq, ph_lexicon_feat, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
         ret_count_correct, ret_loss, ret_label, \
         global_step, optimizer = \
-        build_neural_network(lookup_table)
+        build_neural_network(task_config, lookup_table)
 
     def step_train(dataset):
         loss = 0.
