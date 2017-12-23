@@ -37,3 +37,68 @@ def load_embedding(key, task_config):
     lookup_table = build_lookup_table(vocab_list, embedding)
     lookup_table = np.asarray(lookup_table)
     return vocab_id_mapping, lookup_table
+
+
+def step_train(sess, task_config, nn, dataset):
+    """
+    進行訓練一輪
+
+    sess: tensorflow中的Session實例
+    nn: NeuralNetworkPack實例
+    """
+
+    loss = 0.
+    count_correct = 0.
+    for token_id_seq, lexicon_feat, labels in dataset.batch_iterate(task_config.batch_size):
+        seq_len = map(len, token_id_seq)
+        token_id_batch = input_list_to_batch(token_id_seq, task_config.seq_len)
+
+        _, partial_loss, partial_count_correct = sess.run(
+            [nn.optimizer, nn.loss, nn.count_correct],
+            feed_dict={
+                nn.token_id_seq: token_id_batch,
+                nn.lexicon_feat: lexicon_feat,
+                nn.label_gold: labels,
+                nn.seq_len: seq_len,
+                nn.dropout_keep_prob: 1.
+            }
+        )
+        n_sample = len(labels)
+        count_correct += partial_count_correct
+        loss += partial_loss * n_sample
+
+    accuracy = count_correct / dataset.n_sample
+    loss /= dataset.n_sample
+    return accuracy, loss
+
+
+def step_trial(sess, task_config, nn, dataset):
+    """
+    進行一輪驗證
+
+    sess: tensorflow中的Session實例
+    nn: NeuralNetworkPack實例
+    """
+    loss = 0.
+    count_correct = 0.
+    for token_id_seq, lexicon_feat, labels in dataset.batch_iterate(task_config.batch_size, shuffle=False):
+        seq_len = map(len, token_id_seq)
+        token_id_batch = input_list_to_batch(token_id_seq, task_config.seq_len)
+
+        partial_loss, partial_count_correct = sess.run(
+            [nn.loss, nn.count_correct],
+            feed_dict={
+                nn.token_id_seq: token_id_batch,
+                nn.lexicon_feat: lexicon_feat,
+                nn.label_gold: labels,
+                nn.seq_len: seq_len,
+                nn.dropout_keep_prob: 1.
+            }
+        )
+        n_sample = len(labels)
+        count_correct += partial_count_correct
+        loss += partial_loss * n_sample
+
+    accuracy = count_correct / dataset.n_sample
+    loss /= dataset.n_sample
+    return accuracy, loss
