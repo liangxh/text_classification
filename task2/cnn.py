@@ -1,16 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-
-import copy
 import commandr
-import numpy as np
 import tensorflow as tf
-from tensorflow.contrib.rnn import GRUCell
-from tensorflow.python.ops.rnn import dynamic_rnn as rnn
-
 import task2
-from task2.model.config import config
-from nlp.lib.word_embed.build import build_lookup_table, build_vocab_id_mapping
+from task2.common import input_list_to_batch, load_embedding
 from nlp.model.dataset import Dataset
 
 
@@ -19,7 +12,6 @@ class TaskConfig(object):
     embedding_algorithm = 'glove'
     embedding_key = 'twitter.50d'
     n_vocab = 4000
-    dim_rnn = 50
     learning_rate_initial = 0.01
     learning_rate_decay_rate = 1.
     learning_rate_decay_steps = 10
@@ -31,31 +23,34 @@ class TaskConfig(object):
     dim_output = None
     dim_lexicon_feat = None
     dim_embed = None
+    filter_size = 3
+    filter_num = 32
 
 
-def build_neural_network(lookup_table):
-    model_config = TaskConfig()
-
+def build_neural_network(model_config, lookup_table):
     ph_label_gold = tf.placeholder(tf.int32, [None, ])
     ph_token_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len])
     ph_lexicon_feat = tf.placeholder(tf.float32, [None, model_config.dim_lexicon_feat])
     ph_seq_len = tf.placeholder(tf.int32, [None, ])
     ph_dropout_keep_prob = tf.placeholder(tf.float32)
+    embeddings = tf.Variable(lookup_table, trainable=True, dtype=tf.float32)
 
-    embeddings = tf.Variable(np.asarray(lookup_table), trainable=True, dtype=tf.float32)
     embedded = tf.nn.embedding_lookup(embeddings, ph_token_id_seq)
-    rnn_outputs, rnn_last_states = rnn(
-        GRUCell(model_config.dim_rnn),
-        inputs=embedded,
-        sequence_length=ph_seq_len,
-        dtype=tf.float32
-    )
 
-    rnn_output = tf.nn.dropout(rnn_last_states, ph_dropout_keep_prob)
+    # cnn
+    filter_shape = [model_config.filter_size, model_config.dim_embed, model_config.filter_num]
+    w = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1))
+    b = tf.Variable(tf.constant(0.1, shape=[model_config.filter_num]))
+    conv = tf.nn.conv1d(embedded, w, stride=1, padding='VALID')
+    h = tf.nn.relu(conv + b)   # [batch_size, ?, filter_num]
 
-    dense_input = tf.concat([rnn_output, ph_lexicon_feat], axis=1)
+    # max pooling
+    last_state = tf.nn.max_pool(tf.expand_dims(h, -2), ksize=[1, model_config.seq_len - model_config.filter_size + 1, 1, 1], strides=[1] * 4, padding='VALID')
+    last_state = tf.reshape(last_state, [-1, last_state.shape[-1].value])
 
-    w = tf.Variable(tf.truncated_normal([model_config.dim_rnn + model_config.dim_lexicon_feat, model_config.dim_output], stddev=0.1))
+    dense_input = tf.concat([last_state, ph_lexicon_feat], axis=1)
+
+    w = tf.Variable(tf.truncated_normal([dense_input.shape[-1].value, model_config.dim_output], stddev=0.1))
     b = tf.Variable(tf.constant(0.1, shape=[model_config.dim_output]))
     y = tf.matmul(dense_input, w) + b
 
@@ -84,38 +79,6 @@ def build_neural_network(lookup_table):
     return ph_token_id_seq, ph_lexicon_feat, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
         count_correct, loss, label, \
         global_step, optimizer
-
-
-def input_list_to_batch(input_list, seq_len):
-    # 在長度不足的輸入末尾补零
-    input_batch = copy.deepcopy(input_list)
-    for input_seq in input_batch:
-        input_seq += [0] * (seq_len - len(input_seq))
-    return input_batch
-
-
-def load_embedding(key, task_config):
-    # 加載詞嵌入相關數據
-    vocab_list = task2.dataset.load_vocab(key, task_config.n_vocab)
-
-    if task_config.embedding_algorithm == 'glove':
-        from nlp.lib.word_embed.glove import Glove
-        embedding = Glove(task_config.embedding_key)
-    elif task_config.embedding_algorithm == 'word2vec':
-        if task_config.embedding_key == 'frederic_godin':
-            from nlp.lib.word_embed.word2vec.frederic_godin import FredericGodinModel
-            embedding = FredericGodinModel(config.path_to_frederic_godin_index)
-        else:
-            raise Exception
-    else:
-        raise Exception
-
-    task_config.dim_embed = embedding.dim
-
-    # 加載詞嵌入相關模塊
-    vocab_id_mapping = build_vocab_id_mapping(vocab_list)
-    lookup_table = build_lookup_table(vocab_list, embedding)
-    return vocab_id_mapping, lookup_table
 
 
 def load_and_prepare_dataset(key, mode, vocab_id_mapping, output=True):
@@ -150,7 +113,7 @@ def train():
     ph_token_id_seq, ph_lexicon_feat, ph_seq_len, ph_label_gold, ph_dropout_keep_prob, \
         ret_count_correct, ret_loss, ret_label, \
         global_step, optimizer = \
-        build_neural_network(lookup_table)
+        build_neural_network(task_config, lookup_table)
 
     def step_train(dataset):
         loss = 0.
