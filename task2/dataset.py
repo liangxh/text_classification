@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
-
 from nlp.lib.preprocess import vocab
+from task2.model import const
 from task2.model.config import config
 
 
@@ -80,12 +80,8 @@ def get_max_seq_len(key, mode):
     return max_len
 
 
-def get_output_dim(key):
-    return max(*load_labels(key, 'train')) + 1
-
-
-def get_lexicon_feature_dim(key):
-    path = path_to_lexicon_feat(key, 'train')
-    line = open(path, 'r').readline()
-    dim = len(line.split('\t'))
-    return dim
+source_key_to_func = {
+    const.TOKEN_ID_SEQ: load_tokenized,
+    const.LEXICON_FEAT: load_lexicon_feature,
+    const.LABEL_GOLD: load_labels
+}
