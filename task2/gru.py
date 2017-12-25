@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+import os
+import datetime
 import commandr
 import tensorflow as tf
 import task2
+from task2.model.config import config
 from task2.model.pack import NeuralNetworkPack
-from task2.common import load_embedding, step_train, step_trial
+from task2.common import load_embedding, step_train, step_trial, step_test
 from nlp.model.dataset import Dataset
+from nlp.lib.word_embed.build import build_vocab_id_mapping
+import time
 
 
 class TaskConfig(object):
@@ -28,14 +33,14 @@ class TaskConfig(object):
 
 
 def build_neural_network(model_config, lookup_table):
-    label_gold = tf.placeholder(tf.int32, [None, ])
-    token_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len])
-    lexicon_feat = tf.placeholder(tf.float32, [None, model_config.dim_lexicon_feat])
-    seq_len = tf.placeholder(tf.int32, [None, ])
-    dropout_keep_prob = tf.placeholder(tf.float32)
-    embeddings = tf.Variable(lookup_table, dtype=tf.float32)
+    label_gold = tf.placeholder(tf.int32, [None, ], name='label_gold')
+    token_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len], name='token_id_seq')
+    lexicon_feat = tf.placeholder(tf.float32, [None, model_config.dim_lexicon_feat], name='lexicon_feat')
+    seq_len = tf.placeholder(tf.int32, [None, ], name='seq_len')
+    dropout_keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
+    lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name='lookup_table')
 
-    embedded = tf.nn.embedding_lookup(embeddings, token_id_seq)
+    embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
     rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
         tf.nn.rnn_cell.GRUCell(model_config.dim_rnn),
         inputs=embedded,
@@ -54,9 +59,9 @@ def build_neural_network(model_config, lookup_table):
     y = tf.matmul(dense_input, w) + b
 
     # 預測標籤
-    label_predict = tf.cast(tf.argmax(y, 1), tf.int32)
+    label_predict = tf.cast(tf.argmax(y, 1), tf.int32, name='label_predict')
     # 計算準確率
-    count_correct = tf.reduce_sum(tf.cast(tf.equal(label_gold, label_predict), tf.float32))
+    count_correct = tf.reduce_sum(tf.cast(tf.equal(label_gold, label_predict), tf.float32), name='count_correct')
 
     # 計算loss
     prob_gold = tf.one_hot(label_gold, model_config.dim_output)
@@ -101,8 +106,21 @@ def load_and_prepare_dataset(key, mode, vocab_id_mapping, output=True):
 @commandr.command('train')
 def train():
     task_config = TaskConfig()
+    dir_checkpoint = os.path.join(config.dir_train_checkpoint, task_config.task_key)
+    if os.path.exists(dir_checkpoint):
+        raise Exception(
+            'Checkout point directory already exists\n' +
+            '\tremove it: rm -r {}\n'.format(dir_checkpoint) +
+            '\tor rename it: mv {}/{{{},{}.{}}}'.format(
+                config.dir_train_checkpoint, task_config.task_key,
+                task_config.task_key, datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
+            )
+        )
+    else:
+        os.mkdir(dir_checkpoint)
+    prefix_checkpoint = dir_checkpoint + '/model'
 
-    vocab_id_mapping, lookup_table = load_embedding(task_config.task_key, task_config)
+    vocab_id_mapping, lookup_table = load_embedding(task_config)
 
     TaskConfig.dim_output = task2.dataset.get_output_dim(task_config.task_key)
     TaskConfig.dim_lexicon_feat = task2.dataset.get_lexicon_feature_dim(task_config.task_key)
@@ -115,7 +133,7 @@ def train():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        # saver = tf.train.Saver(tf.global_variables())
+        saver = tf.train.Saver(tf.global_variables())
         best_dev_accuracy = 0.
 
         for epoch in range(task_config.epochs):
@@ -133,8 +151,38 @@ def train():
 
                 if trial_accuracy > best_dev_accuracy:
                     best_dev_accuracy = trial_accuracy
-                    # path = saver.save(sess, config.dir_train_checkpoint, global_step=current_step)
-                    # print('new checkpoint saved to {}'.format(path))
+                    path = saver.save(sess, prefix_checkpoint, global_step=current_step)
+                    print('new checkpoint saved to {}'.format(path))
+
+
+@commandr.command('test')
+def test():
+    task_config = TaskConfig()
+    dir_checkpoint = os.path.join(config.dir_train_checkpoint, task_config.task_key)
+
+    vocab_list = task2.dataset.load_vocab(task_config.task_key, task_config.n_vocab)
+    vocab_id_mapping = build_vocab_id_mapping(vocab_list)
+
+    dataset = load_and_prepare_dataset(task_config.task_key, 'trial', vocab_id_mapping, output=False)
+
+    with tf.Session() as sess:
+        prefix_checkpoint = tf.train.latest_checkpoint(dir_checkpoint)
+
+        saver = tf.train.import_meta_graph("{}.meta".format(prefix_checkpoint))
+        saver.restore(sess, prefix_checkpoint)
+
+        graph = tf.get_default_graph()
+        nn_args = dict([
+            (key, graph.get_operation_by_name(key).outputs[0])
+            for key in ['token_id_seq', 'lexicon_feat', 'seq_len', 'dropout_keep_prob', 'label_predict']
+        ])
+        nn = NeuralNetworkPack(**nn_args)
+
+        label_predict = step_test(sess, task_config, nn, dataset)
+
+    import numpy as np
+    labels = task2.dataset.load_labels(task_config.task_key, 'trial')
+    print(np.mean(np.asarray(labels) == np.asarray(label_predict)))
 
 
 if __name__ == '__main__':

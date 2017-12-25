@@ -14,9 +14,9 @@ def input_list_to_batch(input_list, seq_len):
     return input_batch
 
 
-def load_embedding(key, task_config):
+def load_embedding(task_config):
     # 加載詞嵌入相關數據
-    vocab_list = task2.dataset.load_vocab(key, task_config.n_vocab)
+    vocab_list = task2.dataset.load_vocab(task_config.task_key, task_config.n_vocab)
 
     if task_config.embedding_algorithm == 'glove':
         from nlp.lib.word_embed.glove import Glove
@@ -102,3 +102,22 @@ def step_trial(sess, task_config, nn, dataset):
     accuracy = count_correct / dataset.n_sample
     loss /= dataset.n_sample
     return accuracy, loss
+
+
+def step_test(sess, task_config, nn, dataset):
+    label_predict = list()
+    for token_id_seq, lexicon_feat in dataset.batch_iterate(task_config.batch_size, shuffle=False):
+        seq_len = map(len, token_id_seq)
+        token_id_batch = input_list_to_batch(token_id_seq, task_config.seq_len)
+
+        partial_labels = sess.run(
+            nn.label_predict,
+            feed_dict={
+                nn.token_id_seq: token_id_batch,
+                nn.lexicon_feat: lexicon_feat,
+                nn.seq_len: seq_len,
+                nn.dropout_keep_prob: 1.
+            }
+        )
+        label_predict.extend(partial_labels)
+    return label_predict

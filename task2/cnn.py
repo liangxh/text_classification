@@ -29,14 +29,14 @@ class TaskConfig(object):
 
 
 def build_neural_network(model_config, lookup_table):
-    label_gold = tf.placeholder(tf.int32, [None, ])
-    token_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len])
-    lexicon_feat = tf.placeholder(tf.float32, [None, model_config.dim_lexicon_feat])
-    seq_len = tf.placeholder(tf.int32, [None, ])
-    dropout_keep_prob = tf.placeholder(tf.float32)
-    embeddings = tf.Variable(lookup_table, dtype=tf.float32)
+    label_gold = tf.placeholder(tf.int32, [None, ], name='label_gold')
+    token_id_seq = tf.placeholder(tf.int32, [None, model_config.seq_len], name='token_id_seq')
+    lexicon_feat = tf.placeholder(tf.float32, [None, model_config.dim_lexicon_feat], name='lexicon_feat')
+    seq_len = tf.placeholder(tf.int32, [None, ], name='seq_len')
+    dropout_keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
+    lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name='lookup_table')
 
-    embedded = tf.nn.embedding_lookup(embeddings, token_id_seq)
+    embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
     # cnn
     filter_shape = [model_config.filter_size, model_config.dim_embed, model_config.filter_num]
@@ -104,7 +104,7 @@ def load_and_prepare_dataset(key, mode, vocab_id_mapping, output=True):
 def train():
     task_config = TaskConfig()
 
-    vocab_id_mapping, lookup_table = load_embedding(task_config.task_key, task_config)
+    vocab_id_mapping, lookup_table = load_embedding(task_config)
 
     TaskConfig.dim_output = task2.dataset.get_output_dim(task_config.task_key)
     TaskConfig.dim_lexicon_feat = task2.dataset.get_lexicon_feature_dim(task_config.task_key)
