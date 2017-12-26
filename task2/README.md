@@ -51,7 +51,7 @@ python -m task2.scripts.dataset vocab -k us2
 
 * 本庫已實現幾個神經網絡，見task2/nn/
 * 每個神經網絡對應一個配置模板，見task2/config/，調參數只需要拷貝出模板並修改參數即可
-* 訓練: ```python -m task2.main train -c task2/config/gru.yaml```
+* 訓練: ```python -m task2.main train -c task2/task_config/gru.yaml```
     * 模型將保存至 ${HOME}/lab/task2/train_checkpoint/{TASK_KEY}{ALGORITHM_NAME}/
     * 配置文件也會備份到該目錄下
 
