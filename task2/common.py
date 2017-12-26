@@ -43,86 +43,93 @@ def load_embedding(task_config, return_lookup_table=True):
         return vocab_id_mapping
 
 
-def step_train(sess, task_config, nn, dataset, feed_keys_input):
+def step_train(sess, task_config, nn, dataset):
     """
     進行訓練一輪
     """
     # 準備feed_dict需要的key
     feed_keys = list()
-    feed_keys.extend(feed_keys_input)
+    feed_keys.extend(nn.input_keys())
     feed_keys.append(const.LABEL_GOLD)
 
     loss = 0.
-    count_correct = 0.
+    label_gold = list()
+    label_predict = list()
     for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size):
         # 準備feed_dict
         feed_dict = dict()
-        for key in feed_keys:
-            feed_dict[nn[key]] = subset[key]
-        feed_dict[nn[const.DROPOUT_KEEP_PROB]] = task_config.dropout_keep_prob
+        for key, placeholder in nn.ph_input.items():
+            feed_dict[placeholder] = subset[key]
+        feed_dict[nn.label_gold] = subset[const.LABEL_GOLD]
+        feed_dict[nn.dropout_keep_prob] = task_config.dropout_keep_prob
 
         # 訓練
-        _, partial_loss, partial_count_correct = sess.run(
-            [nn[const.OPTIMIZER], nn[const.LOSS], nn[const.COUNT_CORRECT]],
+        _, partial_loss, partial_labels = sess.run(
+            [nn.optimizer, nn.loss, nn.label_predict],
             feed_dict=feed_dict
         )
 
         # 更新本輪記錄
-        count_correct += partial_count_correct
         loss += partial_loss * subset_size
+        label_gold.extend(subset[const.LABEL_GOLD])
+        label_predict.extend(partial_labels)
 
-    current_step = tf.train.global_step(sess, nn[const.GLOBAL_STEP])
-    accuracy = count_correct / dataset.n_sample
+    current_step = tf.train.global_step(sess, nn.global_step)
     loss /= dataset.n_sample
+    accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
     return accuracy, loss, current_step
 
 
-def step_trial(sess, task_config, nn, dataset, feed_keys_input):
+def step_trial(sess, task_config, nn, dataset):
     """
     進行一輪驗證
     """
     # 準備feed_dict需要的key
-    feed_keys = list()
-    feed_keys.extend(feed_keys_input)
+    feed_keys = nn.input_keys()
     feed_keys.append(const.LABEL_GOLD)
 
     loss = 0.
-    count_correct = 0.
+    label_gold = list()
+    label_predict = list()
+
     for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size):
         # 準備feed_dict
         feed_dict = dict()
-        for key in feed_keys:
-            feed_dict[nn[key]] = subset[key]
-        feed_dict[nn[const.DROPOUT_KEEP_PROB]] = 1.
+        feed_dict[nn.dropout_keep_prob] = 1.
+        for key, placeholder in nn.ph_input.items():
+            feed_dict[placeholder] = subset[key]
+        feed_dict[nn.label_gold] = subset[const.LABEL_GOLD]
 
         # 驗證
-        partial_loss, partial_count_correct = sess.run(
-            [nn[const.LOSS], nn[const.COUNT_CORRECT]],
+        partial_loss, partial_labels = sess.run(
+            [nn.loss, nn.label_predict],
             feed_dict=feed_dict
         )
 
         # 更新本輪記錄
-        count_correct += partial_count_correct
         loss += partial_loss * subset_size
+        label_gold.extend(subset[const.LABEL_GOLD])
+        label_predict.extend(partial_labels)
 
-    accuracy = count_correct / dataset.n_sample
+    accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
     loss /= dataset.n_sample
     return accuracy, loss
 
 
-def step_test(sess, task_config, nn, dataset, feed_keys_input):
-    feed_keys = feed_keys_input
+def step_test(sess, task_config, nn, dataset):
+    feed_keys = nn.input_keys()
     label_predict = list()
+
     for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=False):
         # 準備feed_dict
         feed_dict = dict()
-        for key in feed_keys:
-            feed_dict[nn[key]] = subset[key]
-        feed_dict[nn[const.DROPOUT_KEEP_PROB]] = 1.
+        feed_dict[nn.dropout_keep_prob] = 1.
+        for key, placeholder in nn.ph_input.items():
+            feed_dict[placeholder] = subset[key]
 
         # 預測
         partial_labels = sess.run(
-            nn[const.LABEL_PREDICT],
+            nn.label_predict,
             feed_dict=feed_dict
         )
         label_predict.extend(partial_labels)

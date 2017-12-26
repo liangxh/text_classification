@@ -50,3 +50,6 @@ class Dataset(object):
         data = self.sources[source_key]
         data = map(func, data)
         self.sources[output_key] = data
+
+    def get(self, source_key):
+        return self.sources[source_key]

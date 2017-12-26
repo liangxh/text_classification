@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import os
+import shutil
 import datetime
 import commandr
 import tensorflow as tf
@@ -8,15 +9,16 @@ import task2
 from task2.model.task_config import TaskConfig
 from task2.common import load_embedding
 from task2.common import step_train, step_trial, step_test
-from task2.nn.base import get_graph_elements_for_test
 
 
 def get_algorithm(name):
     if name == 'gru':
-        from task2.nn import gru
-        return gru
+        from task2.nn.gru import Algorithm
+    elif name == 'gru_without_lexicon':
+        from task2.nn.gru_without_lexicon import Algorithm
     else:
         raise Exception('invalid algorithm name: {}'.format(name))
+    return Algorithm
 
 
 def check_checkpoint_directory(dir_name):
@@ -24,7 +26,7 @@ def check_checkpoint_directory(dir_name):
         raise Exception(
             'Checkout point directory already exists\n' +
             '\tremove it: rm -r {}\n'.format(dir_name) +
-            '\tor rename it: mv {}/{{,.{}}}'.format(
+            '\tor rename it: mv {}{{,.{}}}'.format(
                 dir_name, datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
             )
         )
@@ -37,17 +39,18 @@ def train(config_filename):
     # 加載配置
     task_config = TaskConfig.load(config_filename)
     check_checkpoint_directory(task_config.dir_checkpoint)
+    shutil.copy(config_filename, os.path.join(task_config.dir_checkpoint, 'config'))
 
     # 選擇算法
-    algorithm = get_algorithm(task_config.algorithm)
+    algorithm = get_algorithm(task_config.algorithm)(task_config)
 
     # 加載數據
     vocab_id_mapping, lookup_table = load_embedding(task_config)
-    dataset_train = algorithm.load_and_prepare_dataset(task_config, 'train', vocab_id_map=vocab_id_mapping.map)
-    dataset_trial = algorithm.load_and_prepare_dataset(task_config, 'trial', vocab_id_map=vocab_id_mapping.map)
+    dataset_train = algorithm.load_and_prepare_dataset('train', vocab_id_map=vocab_id_mapping.map)
+    dataset_trial = algorithm.load_and_prepare_dataset('trial', vocab_id_map=vocab_id_mapping.map)
 
     # 生成神經網絡
-    nn = algorithm.build_neural_network(task_config, lookup_table)
+    nn = algorithm.build_neural_network(lookup_table)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -57,11 +60,11 @@ def train(config_filename):
         for epoch in range(task_config.epochs):
             print('epoch: {}\t'.format(epoch))
 
-            train_accuracy, train_loss, current_step = step_train(sess, task_config, nn, dataset_train, algorithm.feed_keys_input)
+            train_accuracy, train_loss, current_step = step_train(sess, task_config, nn, dataset_train)
             print('TRAIN: loss:{}, acc:{}'.format(train_loss, train_accuracy))
 
             if (epoch + 1) % task_config.validate_interval == 0:
-                trial_accuracy, trial_loss = step_trial(sess, task_config, nn, dataset_trial, algorithm.feed_keys_input)
+                trial_accuracy, trial_loss = step_trial(sess, task_config, nn, dataset_trial)
                 print('TRIAL: loss:{}, acc:{}'.format(trial_loss, trial_accuracy))
 
                 if trial_accuracy > best_dev_accuracy:
@@ -76,25 +79,24 @@ def test(config_filename):
     task_config = TaskConfig.load(config_filename)
 
     # 選擇算法
-    algorithm = get_algorithm(task_config.algorithm)
+    algorithm = get_algorithm(task_config.algorithm)(task_config)
 
     # 加載數據
     vocab_id_mapping = load_embedding(task_config, return_lookup_table=False)
-    dataset = algorithm.load_and_prepare_dataset(task_config, 'trial', output=False, vocab_id_map=vocab_id_mapping.map)
+    dataset = algorithm.load_and_prepare_dataset('trial', output=False, vocab_id_map=vocab_id_mapping.map)
 
     with tf.Session() as sess:
         # 加載模型
         prefix_checkpoint = tf.train.latest_checkpoint(task_config.dir_checkpoint)
-        print(prefix_checkpoint)
         saver = tf.train.import_meta_graph("{}.meta".format(prefix_checkpoint))
         saver.restore(sess, prefix_checkpoint)
 
         # 摘出測試需要的placeholder
         graph = tf.get_default_graph()
-        nn = get_graph_elements_for_test(graph, algorithm.feed_keys_input)
+        nn = algorithm.build_from_graph(graph)
 
         # 預測
-        label_predict = step_test(sess, task_config, nn, dataset, algorithm.feed_keys_input)
+        label_predict = step_test(sess, task_config, nn, dataset)
 
     import numpy as np
     labels = task2.dataset.load_labels(task_config.task_key, 'trial')

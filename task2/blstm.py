@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 import commandr
 import tensorflow as tf
+
 import task2
-from task2.model.pack import NeuralNetworkPack
-from task2.common import load_embedding, step_train, step_trial
 from nlp.model.dataset import Dataset
+from task2.common import load_embedding, step_train, step_trial
+from task2.nn.pack import NeuralNetworkPack
 
 
 class TaskConfig(object):

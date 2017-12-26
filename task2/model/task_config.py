@@ -6,6 +6,7 @@ from task2.model.config import config
 
 class TaskConfig(object):
     task_key = None
+    algorithm = None
     embedding_algorithm = None
     embedding_key = None
     n_vocab = None
@@ -31,7 +32,7 @@ class TaskConfig(object):
 
     @property
     def dir_checkpoint(self):
-        return os.path.join(config.dir_train_checkpoint, self.task_key)
+        return os.path.join(config.dir_train_checkpoint, self.task_key, self.algorithm)
 
     @property
     def prefix_checkpoint(self):

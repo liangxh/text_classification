@@ -1,13 +1,40 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
 from task2.model import const
+from task2.model.dataset import Dataset
+from task2.common import zero_padding
 from task2.nn.base import BaseAlgorithm
+from task2.dataset import source_key_to_func
 
 
 class Algorithm(BaseAlgorithm):
+    feed_keys_input = [const.TOKEN_ID_SEQ, const.SEQ_LEN]
+
+    def load_and_prepare_dataset(self, mode, output=True, vocab_id_map=None):
+        source_keys = [const.TOKEN_ID_SEQ, ]
+        if output:
+            source_keys.append(const.LABEL_GOLD)
+
+        # 讀取原始數據
+        source_dict = dict(map(
+            lambda key: (key, source_key_to_func[key](self.config.task_key, mode)),
+            source_keys
+        ))
+
+        # 數據處理
+        dataset = Dataset(source_dict)
+        dataset.map(const.TOKEN_ID_SEQ, vocab_id_map)
+        dataset.map(const.TOKEN_ID_SEQ, len, const.SEQ_LEN)
+        dataset.map(const.TOKEN_ID_SEQ, zero_padding(self.config.seq_len))
+
+        # 填补config
+        if output:
+            self.config.dim_output = dataset.get_dim(const.LABEL_GOLD)
+
+        return dataset
+
     def build_neural_network(self, lookup_table):
         token_id_seq = tf.placeholder(tf.int32, [None, self.config.seq_len], name=const.TOKEN_ID_SEQ)
-        lexicon_feat = tf.placeholder(tf.float32, [None, self.config.dim_lexicon_feat], name=const.LEXICON_FEAT)
         seq_len = tf.placeholder(tf.int32, [None, ], name=const.SEQ_LEN)
         dropout_keep_prob = tf.placeholder(tf.float32, name=const.DROPOUT_KEEP_PROB)
         lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE)
@@ -21,11 +48,9 @@ class Algorithm(BaseAlgorithm):
         )
 
         rnn_output = tf.nn.dropout(rnn_last_states, dropout_keep_prob)
-
-        dense_input = tf.concat([rnn_output, lexicon_feat], axis=1)
-
+        dense_input = rnn_output
         w = tf.Variable(tf.truncated_normal(
-            [self.config.dim_rnn + self.config.dim_lexicon_feat, self.config.dim_output], stddev=0.1)
+            [dense_input.shape[-1].value, self.config.dim_output], stddev=0.1)
         )
         b = tf.Variable(tf.constant(0.1, shape=[self.config.dim_output]))
         y = tf.matmul(dense_input, w) + b

@@ -26,5 +26,5 @@ embedding_key: twitter.50d
 # embedding_key: frederic_godin
 
 # model specific parameters
-algorithm: gru
+algorithm: gru_without_lexicon
 dim_rnn: 50
