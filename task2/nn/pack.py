@@ -6,7 +6,7 @@ class NNPack(object):
                  ph_input,
                  dropout_keep_prob=None,
                  label_gold=None, label_predict=None,
-                 loss=None, optimizer=None, global_step=None
+                 loss=None, optimizer=None, global_step=None, **kwargs
                  ):
         self.ph_input = ph_input
         self.dropout_keep_prob = dropout_keep_prob
@@ -15,6 +15,10 @@ class NNPack(object):
         self.loss = loss
         self.global_step = global_step
         self.optimizer = optimizer
+        self.other = kwargs
+
+    def get(self, key):
+        return self.other[key]
 
     def input_keys(self):
         return self.ph_input.keys()
