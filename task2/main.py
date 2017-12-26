@@ -4,6 +4,7 @@ import os
 import shutil
 import datetime
 import commandr
+import importlib
 import tensorflow as tf
 import task2
 from task2.model.task_config import TaskConfig
@@ -12,26 +13,31 @@ from task2.common import step_train, step_trial, step_test
 
 
 def get_algorithm(name):
-    if name == 'gru':
-        from task2.nn.gru import Algorithm
-    elif name == 'gru_without_lexicon':
-        from task2.nn.gru_without_lexicon import Algorithm
-    else:
-        raise Exception('invalid algorithm name: {}'.format(name))
-    return Algorithm
+    module = importlib.import_module('task2.nn.{}'.format(name))
+    return module.Algorithm
 
 
 def check_checkpoint_directory(dir_name):
     if os.path.exists(dir_name):
-        raise Exception(
-            'Checkout point directory already exists\n' +
-            '\tremove it: rm -r {}\n'.format(dir_name) +
-            '\tor rename it: mv {}{{,.{}}}'.format(
+        print (
+            '[info] Checkout point directory already exists\n' +
+            '\t[0] exit\n' +
+            '\t[1] remove it: rm -r {}\n'.format(dir_name) +
+            '\t[2] or rename it: mv {}{{,.{}}}'.format(
                 dir_name, datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
             )
         )
-    else:
-        os.mkdir(dir_name)
+        ret = input('choose: ')
+        if ret == 0:
+            exit()
+        elif ret == 1:
+            shutil.rmtree(dir_name)
+        elif ret == 2:
+            shutil.move(dir_name, dir_name + datetime.datetime.now().strftime('%Y%m%dT%H%M%S'))
+        else:
+            raise Exception('invalid reply: {}'.format(ret))
+
+    os.mkdir(dir_name)
 
 
 @commandr.command('train')

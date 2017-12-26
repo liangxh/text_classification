@@ -13,20 +13,21 @@ class Algorithm(BaseAlgorithm):
         lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE)
 
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
-        rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
-            tf.nn.rnn_cell.GRUCell(self.config.dim_rnn),
-            inputs=embedded,
-            sequence_length=seq_len,
-            dtype=tf.float32
-        )
 
-        rnn_output = tf.nn.dropout(rnn_last_states, dropout_keep_prob)
+        # cnn
+        filter_shape = [self.config.filter_size, self.config.dim_embed, self.config.filter_num]
+        w = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1))
+        b = tf.Variable(tf.constant(0.1, shape=[self.config.filter_num]))
+        conv = tf.nn.conv1d(embedded, w, stride=1, padding='VALID')
+        h = tf.nn.relu(conv + b)   # [batch_size, ?, filter_num]
 
-        dense_input = tf.concat([rnn_output, lexicon_feat], axis=1)
+        # max pooling
+        last_state = tf.nn.max_pool(tf.expand_dims(h, -2), ksize=[1, self.config.seq_len - self.config.filter_size + 1, 1, 1], strides=[1] * 4, padding='VALID')
+        last_state = tf.reshape(last_state, [-1, last_state.shape[-1].value])
 
-        w = tf.Variable(tf.truncated_normal(
-            [self.config.dim_rnn + self.config.dim_lexicon_feat, self.config.dim_output], stddev=0.1)
-        )
+        dense_input = tf.concat([last_state, lexicon_feat], axis=1)
+
+        w = tf.Variable(tf.truncated_normal([dense_input.shape[-1].value, self.config.dim_output], stddev=0.1))
         b = tf.Variable(tf.constant(0.1, shape=[self.config.dim_output]))
         y = tf.matmul(dense_input, w) + b
 

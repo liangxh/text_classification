@@ -13,20 +13,19 @@ class Algorithm(BaseAlgorithm):
         lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE)
 
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
-        rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
-            tf.nn.rnn_cell.GRUCell(self.config.dim_rnn),
-            inputs=embedded,
-            sequence_length=seq_len,
-            dtype=tf.float32
-        )
 
-        rnn_output = tf.nn.dropout(rnn_last_states, dropout_keep_prob)
+        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(self.config.dim_rnn, forget_bias=0.1, state_is_tuple=True)
+        lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
+            lstm_cell, output_keep_prob=dropout_keep_prob)
 
-        dense_input = tf.concat([rnn_output, lexicon_feat], axis=1)
+        init_state = lstm_cell.zero_state(self.config.batch_size, tf.float32)
+        outputs, output_states = tf.nn.bidirectional_dynamic_rnn(
+            lstm_cell, lstm_cell, embedded, seq_len, init_state, init_state)
 
-        w = tf.Variable(tf.truncated_normal(
-            [self.config.dim_rnn + self.config.dim_lexicon_feat, self.config.dim_output], stddev=0.1)
-        )
+        output_state_fw, output_state_bw = output_states
+        dense_input = tf.concat([output_state_fw.h, output_state_bw.h, lexicon_feat], axis=1)
+
+        w = tf.Variable(tf.truncated_normal([dense_input.shape[-1].value, self.config.dim_output], stddev=0.1))
         b = tf.Variable(tf.constant(0.1, shape=[self.config.dim_output]))
         y = tf.matmul(dense_input, w) + b
 
