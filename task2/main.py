@@ -63,9 +63,10 @@ def train(config_filename):
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.global_variables())
         best_dev_accuracy = 0.
+        best_epoch = -1
 
         for epoch in range(task_config.epochs):
-            print('epoch: {}\t'.format(epoch))
+            print('[epoch {}]'.format(epoch))
 
             train_accuracy, train_loss, current_step = step.train(sess, task_config, nn, dataset_train)
             print('TRAIN: loss:{}, acc:{}'.format(train_loss, train_accuracy))
@@ -76,9 +77,12 @@ def train(config_filename):
 
                 if trial_accuracy > best_dev_accuracy:
                     best_dev_accuracy = trial_accuracy
+                    best_epoch = epoch
                     path = saver.save(sess, task_config.prefix_checkpoint, global_step=current_step)
                     print('new checkpoint saved to {}'.format(path))
+    print('')
     print('best_accuracy on dev:{}'.format(best_dev_accuracy))
+    print('best_epoch: {}'.format(best_epoch))
 
 
 @commandr.command('test')
