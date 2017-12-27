@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+讀取本任務的數據
+"""
 import os
 from nlp.lib.preprocess import vocab
 from task2.model import const

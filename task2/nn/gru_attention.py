@@ -1,29 +1,11 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
-
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
 from task2.nn.common import attention
-from task2.nn.pack import NNPack
 
 
 class Algorithm(BaseAlgorithm):
-    @classmethod
-    def build_from_graph(cls, graph):
-        other_keys = [
-            const.LABEL_PREDICT,
-            const.LABEL_GOLD,
-            const.DROPOUT_KEEP_PROB,
-            const.LOSS,
-            const.GLOBAL_STEP,
-            const.OPTIMIZER,
-            'rnn/transpose'
-        ]
-        ph_input = cls._get_from_graph(graph, cls.feed_keys_input)
-        kwargs = cls._get_from_graph(graph, other_keys)
-
-        return NNPack(ph_input=ph_input, **kwargs)
-
     def build_neural_network(self, lookup_table):
         token_id_seq = tf.placeholder(tf.int32, [None, self.config.seq_len], name=const.TOKEN_ID_SEQ)
         lexicon_feat = tf.placeholder(tf.float32, [None, self.config.dim_lexicon_feat], name=const.LEXICON_FEAT)

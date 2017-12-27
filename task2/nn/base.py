@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-from task2.common import zero_padding
-from task2.dataset import source_key_to_func
-from task2.model.dataset import Dataset
+from task2.lib.common import zero_padding
+from task2.lib.dataset import source_key_to_func
 from task2.model import const
+from task2.model.dataset import Dataset
 from task2.nn.pack import NNPack
 
 
 class BaseAlgorithm(object):
     feed_keys_input = [const.TOKEN_ID_SEQ, const.SEQ_LEN, const.LEXICON_FEAT]
+    extra_keys = list()  # 在測試時可能需要打印中間的權重進行觀察，此處留下入口，在build_from_graph中被引用
 
     def __init__(self, task_config):
         self.config = task_config
@@ -53,6 +54,7 @@ class BaseAlgorithm(object):
             const.GLOBAL_STEP,
             const.OPTIMIZER
         ]
+        other_keys.extend(cls.extra_keys)
         ph_input = cls._get_from_graph(graph, cls.feed_keys_input)
         kwargs = cls._get_from_graph(graph, other_keys)
 

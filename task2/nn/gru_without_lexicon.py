@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
+from task2.common import zero_padding
+
+from task2.lib.dataset import source_key_to_func
 from task2.model import const
 from task2.model.dataset import Dataset
-from task2.common import zero_padding
 from task2.nn.base import BaseAlgorithm
-from task2.dataset import source_key_to_func
+from task2.nn.common import dense
 
 
 class Algorithm(BaseAlgorithm):
@@ -49,11 +51,7 @@ class Algorithm(BaseAlgorithm):
 
         rnn_output = tf.nn.dropout(rnn_last_states, dropout_keep_prob)
         dense_input = rnn_output
-        w = tf.Variable(tf.truncated_normal(
-            [dense_input.shape[-1].value, self.config.dim_output], stddev=0.1)
-        )
-        b = tf.Variable(tf.constant(0.1, shape=[self.config.dim_output]))
-        y = tf.matmul(dense_input, w) + b
+        y, w, b = dense.build(dense_input, self.config.dim_output)
 
         # 預測標籤
         label_predict = tf.cast(tf.argmax(y, 1), tf.int32, name=const.LABEL_PREDICT)

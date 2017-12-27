@@ -2,7 +2,7 @@
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
-from task2.nn.common import dense
+from task2.nn.common import dense, attention
 
 
 class Algorithm(BaseAlgorithm):
@@ -23,8 +23,8 @@ class Algorithm(BaseAlgorithm):
         rnn_outputs, final_state = tf.nn.dynamic_rnn(
             cell, inputs=embedded, sequence_length=seq_len, initial_state=init_state)
 
-        last_state = final_state[-1].h
-        dense_input = tf.concat([last_state, lexicon_feat], axis=1)
+        attention_output, _ = attention.build(rnn_outputs, self.config.dim_attention)
+        dense_input = tf.concat([attention_output, lexicon_feat], axis=1)
         y, w, b = dense.build(dense_input, self.config.dim_output)
 
         # 預測標籤

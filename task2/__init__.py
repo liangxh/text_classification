@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-import dataset
+from task2.lib import dataset

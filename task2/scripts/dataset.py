@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import commandr
-from task2 import dataset
+from task2.lib import dataset
 
 
 @commandr.command('lexicon')

@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
+import datetime
+import importlib
 import os
 import shutil
-import datetime
 import commandr
-import importlib
 import tensorflow as tf
 import task2
+from task2.lib import step
+from task2.lib.common import load_embedding
 from task2.model.task_config import TaskConfig
-from task2.common import load_embedding
-from task2.common import step_train, step_trial, step_test
 
 
 def get_algorithm(name):
@@ -66,11 +67,11 @@ def train(config_filename):
         for epoch in range(task_config.epochs):
             print('epoch: {}\t'.format(epoch))
 
-            train_accuracy, train_loss, current_step = step_train(sess, task_config, nn, dataset_train)
+            train_accuracy, train_loss, current_step = step.train(sess, task_config, nn, dataset_train)
             print('TRAIN: loss:{}, acc:{}'.format(train_loss, train_accuracy))
 
             if (epoch + 1) % task_config.validate_interval == 0:
-                trial_accuracy, trial_loss = step_trial(sess, task_config, nn, dataset_trial)
+                trial_accuracy, trial_loss = step.trial(sess, task_config, nn, dataset_trial)
                 print('TRIAL: loss:{}, acc:{}'.format(trial_loss, trial_accuracy))
 
                 if trial_accuracy > best_dev_accuracy:
@@ -102,7 +103,7 @@ def test(config_filename):
         nn = algorithm.build_from_graph(graph)
 
         # 預測
-        label_predict = step_test(sess, task_config, nn, dataset)
+        label_predict = step.test(sess, task_config, nn, dataset)
 
     import numpy as np
     labels = task2.dataset.load_labels(task_config.task_key, 'trial')
