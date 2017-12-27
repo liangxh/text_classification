@@ -78,6 +78,7 @@ def train(config_filename):
                     best_dev_accuracy = trial_accuracy
                     path = saver.save(sess, task_config.prefix_checkpoint, global_step=current_step)
                     print('new checkpoint saved to {}'.format(path))
+    print('best_accuracy on dev:{}'.format(best_dev_accuracy))
 
 
 @commandr.command('test')
