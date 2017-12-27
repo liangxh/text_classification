@@ -2,7 +2,7 @@
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
-from task2.nn.common import dense
+from task2.nn.common import dense, attention
 
 
 class Algorithm(BaseAlgorithm):
@@ -15,19 +15,18 @@ class Algorithm(BaseAlgorithm):
 
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
-        # cnn
-        filter_shape = [self.config.filter_size, self.config.dim_embed, self.config.filter_num]
-        w = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1))
-        b = tf.Variable(tf.constant(0.1, shape=[self.config.filter_num]))
-        conv = tf.nn.conv1d(embedded, w, stride=1, padding='VALID')
-        h = tf.nn.relu(conv + b)   # [batch_size, ?, filter_num]
+        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(self.config.dim_rnn, forget_bias=0.1, state_is_tuple=True)
+        lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
+            lstm_cell, output_keep_prob=dropout_keep_prob)
 
-        # max pooling
-        last_state = tf.nn.max_pool(tf.expand_dims(h, -2), ksize=[1, self.config.seq_len - self.config.filter_size + 1, 1, 1], strides=[1] * 4, padding='VALID')
-        last_state = tf.reshape(last_state, [-1, last_state.shape[-1].value])
+        init_state = lstm_cell.zero_state(self.config.batch_size, tf.float32)
+        outputs, output_states = tf.nn.bidirectional_dynamic_rnn(
+            lstm_cell, lstm_cell, embedded, seq_len, init_state, init_state)
 
-        dense_input = tf.concat([last_state, lexicon_feat], axis=1)
+        outputs = tf.concat(outputs, axis=-1)
+        attention_output, _ = attention.build(outputs, self.config.dim_attention)
 
+        dense_input = tf.concat([attention_output, lexicon_feat], axis=-1)
         y, w, b = dense.build(dense_input, self.config.dim_output)
 
         # 預測標籤

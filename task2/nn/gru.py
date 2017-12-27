@@ -2,6 +2,7 @@
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
+from task2.nn.common import dense
 
 
 class Algorithm(BaseAlgorithm):
@@ -13,22 +14,17 @@ class Algorithm(BaseAlgorithm):
         lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE)
 
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
+
+        rnn_cell = tf.nn.rnn_cell.GRUCell(self.config.dim_rnn)
+        rnn_cell = tf.nn.rnn_cell.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
         rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
-            tf.nn.rnn_cell.GRUCell(self.config.dim_rnn),
+            rnn_cell,
             inputs=embedded,
             sequence_length=seq_len,
             dtype=tf.float32
         )
-
-        rnn_output = tf.nn.dropout(rnn_last_states, dropout_keep_prob)
-
-        dense_input = tf.concat([rnn_output, lexicon_feat], axis=1)
-
-        w = tf.Variable(tf.truncated_normal(
-            [self.config.dim_rnn + self.config.dim_lexicon_feat, self.config.dim_output], stddev=0.1)
-        )
-        b = tf.Variable(tf.constant(0.1, shape=[self.config.dim_output]))
-        y = tf.matmul(dense_input, w) + b
+        dense_input = tf.concat([rnn_outputs, lexicon_feat], axis=1)
+        y, w, b = dense.build(dense_input, self.config.dim_output)
 
         # 預測標籤
         label_predict = tf.cast(tf.argmax(y, 1), tf.int32, name=const.LABEL_PREDICT)

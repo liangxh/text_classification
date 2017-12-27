@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
+
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
+from task2.nn.common import attention
 from task2.nn.pack import NNPack
 
 
@@ -30,32 +32,17 @@ class Algorithm(BaseAlgorithm):
         lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE)
 
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
+
+        rnn_cell = tf.nn.rnn_cell.GRUCell(self.config.dim_rnn)
+        rnn_cell = tf.nn.rnn_cell.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
         rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
-            tf.nn.rnn_cell.GRUCell(self.config.dim_rnn),
+            rnn_cell,
             inputs=embedded,
             sequence_length=seq_len,
             dtype=tf.float32
         )
 
-        def attention(inputs, attention_size):
-            inputs_shape = inputs.shape
-            seq_length = inputs_shape[1].value
-            hidden_size = inputs_shape[2].value
-
-            w = tf.Variable(tf.truncated_normal([hidden_size, attention_size], stddev=0.1))
-            b = tf.Variable(tf.truncated_normal([1, attention_size], stddev=0.1))
-            u = tf.Variable(tf.truncated_normal([attention_size, 1], stddev=0.1))
-
-            v = tf.tanh(tf.matmul(tf.reshape(inputs, [-1, hidden_size]), w)) + b  # [batch_size*seq_len, attention_size]
-            vu = tf.matmul(v, u)                                                # [batch_size * seq_len, 1]
-            exps = tf.reshape(tf.exp(vu), [-1, seq_length])                     # [batch_size, seq_len]
-            alphas = exps / tf.reshape(tf.reduce_sum(exps, 1), [-1, 1])         # /[batch_size] -> [batch_size, seq_len]
-            output = tf.reduce_sum(
-                        inputs * tf.reshape(alphas, [-1, seq_length, 1]), 1)
-            return output, alphas
-
-        attention_output, _ = attention(rnn_outputs, self.config.attention_size)
-
+        attention_output, _ = attention.build(rnn_outputs, self.config.attention_size)
         dense_input = tf.concat([attention_output, lexicon_feat], axis=1)
 
         w = tf.Variable(tf.truncated_normal([dense_input.shape[-1].value, self.config.dim_output], stddev=0.1))

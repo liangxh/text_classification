@@ -2,6 +2,7 @@
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
+from task2.nn.common import dense
 
 
 class Algorithm(BaseAlgorithm):
@@ -25,9 +26,7 @@ class Algorithm(BaseAlgorithm):
         output_state_fw, output_state_bw = output_states
         dense_input = tf.concat([output_state_fw.h, output_state_bw.h, lexicon_feat], axis=1)
 
-        w = tf.Variable(tf.truncated_normal([dense_input.shape[-1].value, self.config.dim_output], stddev=0.1))
-        b = tf.Variable(tf.constant(0.1, shape=[self.config.dim_output]))
-        y = tf.matmul(dense_input, w) + b
+        y, w, b = dense.build(dense_input, self.config.dim_output)
 
         # 預測標籤
         label_predict = tf.cast(tf.argmax(y, 1), tf.int32, name=const.LABEL_PREDICT)

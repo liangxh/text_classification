@@ -20,7 +20,7 @@ def get_algorithm(name):
 def check_checkpoint_directory(dir_name):
     if os.path.exists(dir_name):
         print (
-            '[info] Checkout point directory already exists\n' +
+            '<INFO> Checkout point directory already exists\n' +
             '\t[0] exit\n' +
             '\t[1] remove it: rm -r {}\n'.format(dir_name) +
             '\t[2] or rename it: mv {}{{,.{}}}'.format(
