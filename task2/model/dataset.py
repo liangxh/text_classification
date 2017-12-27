@@ -30,6 +30,9 @@ class Dataset(object):
         self.sources = source_dict
         self.n_sample = source_len_list[0]
 
+    def batch_num(self, batch_size):
+        return len(list(generate_index_batch(self.n_sample, batch_size)))
+
     def batch_iterate(self, keys, batch_size, shuffle=True):
         for indices in generate_index_batch(self.n_sample, batch_size, shuffle):
             subset_dict = dict()

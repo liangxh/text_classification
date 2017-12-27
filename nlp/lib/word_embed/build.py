@@ -10,7 +10,7 @@ class VocabIdMapping(object):
         self.mapping = dict([(vocab, idx) for idx, vocab in enumerate(vocab_list)])
 
     def get_idx(self, token):
-        return self.mapping.get(token, -2) + 2
+        return self.mapping.get(token, -1) + 2
 
     def map(self, token_list):
         return map(self.get_idx, token_list)

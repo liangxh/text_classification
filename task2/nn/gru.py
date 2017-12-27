@@ -23,7 +23,7 @@ class Algorithm(BaseAlgorithm):
             sequence_length=seq_len,
             dtype=tf.float32
         )
-        dense_input = tf.concat([rnn_outputs, lexicon_feat], axis=1)
+        dense_input = tf.concat([rnn_last_states, lexicon_feat], axis=1)
         y, w, b = dense.build(dense_input, self.config.dim_output)
 
         # 預測標籤

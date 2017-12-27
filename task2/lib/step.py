@@ -2,6 +2,12 @@
 import tensorflow as tf
 import numpy as np
 from task2.model import const
+from progressbar import ProgressBar, Percentage, Bar, ETA
+
+
+def progressbar(maxval):
+    widgets = ['Progress: ', Percentage(), ' ', Bar(marker='>'), ' ', ETA()]
+    return ProgressBar(widgets=widgets, maxval=maxval).start()
 
 
 def train(sess, task_config, nn, dataset):
@@ -16,6 +22,11 @@ def train(sess, task_config, nn, dataset):
     loss = 0.
     label_gold = list()
     label_predict = list()
+
+    # 初始化progressbar
+    batch_index = 0
+    pbar = progressbar(dataset.batch_num(task_config.batch_size))
+
     for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size):
         # 準備feed_dict
         feed_dict = dict()
@@ -35,6 +46,11 @@ def train(sess, task_config, nn, dataset):
         label_gold.extend(subset[const.LABEL_GOLD])
         label_predict.extend(partial_labels)
 
+        # 更新progressbar
+        batch_index += 1
+        pbar.update(batch_index)
+    pbar.finish()
+
     current_step = tf.train.global_step(sess, nn.global_step)
     loss /= dataset.n_sample
     accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
@@ -52,6 +68,10 @@ def trial(sess, task_config, nn, dataset):
     loss = 0.
     label_gold = list()
     label_predict = list()
+
+    # 初始化progressbar
+    batch_index = 0
+    pbar = progressbar(dataset.batch_num(task_config.batch_size))
 
     for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size):
         # 準備feed_dict
@@ -72,6 +92,11 @@ def trial(sess, task_config, nn, dataset):
         label_gold.extend(subset[const.LABEL_GOLD])
         label_predict.extend(partial_labels)
 
+        # 更新progressbar
+        batch_index += 1
+        pbar.update(batch_index)
+    pbar.finish()
+
     accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
     loss /= dataset.n_sample
     return accuracy, loss
@@ -80,6 +105,10 @@ def trial(sess, task_config, nn, dataset):
 def test(sess, task_config, nn, dataset):
     feed_keys = nn.input_keys()
     label_predict = list()
+
+    # 初始化progressbar
+    batch_index = 0
+    pbar = progressbar(dataset.batch_num(task_config.batch_size))
 
     for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=False):
         # 準備feed_dict
@@ -94,4 +123,10 @@ def test(sess, task_config, nn, dataset):
             feed_dict=feed_dict
         )
         label_predict.extend(partial_labels)
+
+        # 更新progressbar
+        batch_index += 1
+        pbar.update(batch_index)
+    pbar.finish()
+
     return label_predict
