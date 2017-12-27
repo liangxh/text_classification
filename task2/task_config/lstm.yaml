@@ -30,3 +30,6 @@ embedding_key: twitter.50d
 algorithm: lstm
 dim_rnn: 50
 n_rnn_layers: 2
+
+# output
+nickname:

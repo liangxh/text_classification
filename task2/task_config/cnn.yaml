@@ -30,3 +30,6 @@ embedding_key: twitter.50d
 algorithm: cnn
 filter_size: 3
 filter_num: 32
+
+# output
+nickname:

@@ -29,3 +29,6 @@ embedding_key: twitter.50d
 # model specific parameters
 algorithm: gru
 dim_rnn: 50
+
+# output
+nickname:

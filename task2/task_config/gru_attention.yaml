@@ -30,3 +30,6 @@ embedding_key: twitter.50d
 algorithm: gru_attention
 dim_rnn: 50
 attention_size: 25
+
+# output
+nickname:
