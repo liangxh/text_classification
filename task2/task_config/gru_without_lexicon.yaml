@@ -12,7 +12,7 @@ l2_reg_lambda: 0.5
 
 # validation
 validate_interval: 1
-batch_size: 1
+batch_size: 64
 
 # parameters got when data is loaded
 dim_embed:

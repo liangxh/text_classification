@@ -74,15 +74,6 @@ def load_vocab(key, n_vocab):
     return vocab.load(path, n_vocab)
 
 
-def get_max_seq_len(key, mode):
-    path = path_to_tokenized(key, mode)
-    max_len = 0
-    with open(path, 'r') as file_obj:
-        for line in file_obj:
-            max_len = max(max_len, len(line.split(' ')))
-    return max_len
-
-
 source_key_to_func = {
     const.TOKEN_ID_SEQ: load_tokenized,
     const.LEXICON_FEAT: load_lexicon_feature,

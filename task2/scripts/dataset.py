@@ -86,7 +86,7 @@ def dataset_statics(key, mode):
     """
     給出數據集相關統計數據
     """
-    max_seq_len = dataset.get_max_seq_len(key, mode)
+    max_seq_len = max(*map(len, dataset.load_tokenized(key, mode)))
     return max_seq_len
 
 

@@ -21,6 +21,7 @@ class TaskConfig(object):
     validate_interval = None
     batch_size = None
     seq_len = None
+    nickname = None
 
     @classmethod
     def load(cls, filename):
@@ -32,7 +33,11 @@ class TaskConfig(object):
 
     @property
     def dir_checkpoint(self):
-        return os.path.join(config.dir_train_checkpoint, self.task_key, self.algorithm)
+        return os.path.join(
+                config.dir_train_checkpoint,
+                self.task_key,
+                self.nickname if self.nickname is not None else self.algorithm
+            )
 
     @property
     def prefix_checkpoint(self):
