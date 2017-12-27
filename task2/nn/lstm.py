@@ -16,7 +16,7 @@ class Algorithm(BaseAlgorithm):
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
         lstm_cell_list = list()
-        for _ in self.config.n_rnn_layers:
+        for _ in xrange(self.config.n_rnn_layers):
             cell = tf.nn.rnn_cell.BasicLSTMCell(self.config.dim_rnn, forget_bias=1., state_is_tuple=True)
             cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=dropout_keep_prob)
             lstm_cell_list.append(cell)
