@@ -1,5 +1,6 @@
 # task
 task_key: us2
+seq_len: 50
 
 # train
 epochs: 5

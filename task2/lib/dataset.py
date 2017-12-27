@@ -75,7 +75,7 @@ def load_vocab(key, n_vocab):
 
 
 def get_max_seq_len(key, mode):
-    path = path_to_texts(key, mode)
+    path = path_to_tokenized(key, mode)
     max_len = 0
     with open(path, 'r') as file_obj:
         for line in file_obj:

@@ -13,14 +13,14 @@ class TaskConfig(object):
     dim_output = None
     dim_lexicon_feat = None
     dim_embed = None
-    learning_rate_initial = 0.01
-    learning_rate_decay_rate = 1.
-    learning_rate_decay_steps = 10
-    l2_reg_lambda = 0.2
-    epochs = 5
-    validate_interval = 1
-    batch_size = 64
-    seq_len = 50
+    learning_rate_initial = None
+    learning_rate_decay_rate = None
+    learning_rate_decay_steps = None
+    l2_reg_lambda = None
+    epochs = None
+    validate_interval = None
+    batch_size = None
+    seq_len = None
 
     @classmethod
     def load(cls, filename):

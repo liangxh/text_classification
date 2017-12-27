@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
-from task2.common import zero_padding
-
+from task2.lib.common import zero_padding
 from task2.lib.dataset import source_key_to_func
 from task2.model import const
 from task2.model.dataset import Dataset
