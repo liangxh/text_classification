@@ -20,6 +20,7 @@ dim_lexicon_feat:
 dim_output:
 
 # embedding
+embedding_trainable: True
 n_vocab: 4000
 embedding_algorithm: glove
 embedding_key: twitter.50d

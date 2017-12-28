@@ -38,8 +38,8 @@ class Algorithm(BaseAlgorithm):
         #lexicon_feat = tf.placeholder(tf.float32, [None, self.config.dim_lexicon_feat], name=const.LEXICON_FEAT)
         #seq_len = tf.placeholder(tf.int32, [None, ], name=const.SEQ_LEN)
         dropout_keep_prob = tf.placeholder(tf.float32, name=const.DROPOUT_KEEP_PROB)
-        lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE)
-
+        lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE,
+                                   trainable=self.config.embedding_trainable)
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
         # cnn

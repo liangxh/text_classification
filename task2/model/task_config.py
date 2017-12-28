@@ -9,6 +9,7 @@ class TaskConfig(object):
     algorithm = None
     embedding_algorithm = None
     embedding_key = None
+    embedding_trainable = True
     n_vocab = None
     dim_output = None
     dim_lexicon_feat = None
