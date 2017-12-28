@@ -5,7 +5,7 @@ from task2.lib.dataset import source_key_to_func
 from task2.model import const
 from task2.model.dataset import Dataset
 from task2.nn.base import BaseAlgorithm
-from task2.nn.common import dense
+from task2.nn.common import dense, rnn_cell
 
 
 class Algorithm(BaseAlgorithm):
@@ -42,7 +42,7 @@ class Algorithm(BaseAlgorithm):
 
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
         rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
-            tf.nn.rnn_cell.GRUCell(self.config.dim_rnn),
+            rnn_cell.build_gru(self.config.dim_rnn, dropout_keep_prob),
             inputs=embedded,
             sequence_length=seq_len,
             dtype=tf.float32

@@ -2,7 +2,7 @@
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
-from task2.nn.common import dense, attention
+from task2.nn.common import dense, attention, rnn_cell
 
 
 class Algorithm(BaseAlgorithm):
@@ -15,13 +15,14 @@ class Algorithm(BaseAlgorithm):
 
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
-        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(self.config.dim_rnn, forget_bias=0.1, state_is_tuple=True)
-        lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
-            lstm_cell, output_keep_prob=dropout_keep_prob)
+        cell_fw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob)
+        cell_bw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob)
 
-        init_state = lstm_cell.zero_state(self.config.batch_size, tf.float32)
         outputs, output_states = tf.nn.bidirectional_dynamic_rnn(
-            lstm_cell, lstm_cell, embedded, seq_len, init_state, init_state)
+            cell_fw, cell_bw, embedded, seq_len,
+            cell_fw.zero_state(self.config.batch_size, tf.float32),
+            cell_bw.zero_state(self.config.batch_size, tf.float32)
+        )
 
         outputs = tf.concat(outputs, axis=-1)
         attention_output, _ = attention.build(outputs, self.config.dim_attention)

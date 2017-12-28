@@ -34,7 +34,7 @@ def check_checkpoint_directory(dir_name):
         elif ret == 1:
             shutil.rmtree(dir_name)
         elif ret == 2:
-            shutil.move(dir_name, dir_name + datetime.datetime.now().strftime('%Y%m%dT%H%M%S'))
+            shutil.move(dir_name, '{}.{}'.format(dir_name, datetime.datetime.now().strftime('%Y%m%dT%H%M%S')))
         else:
             raise Exception('invalid reply: {}'.format(ret))
 
