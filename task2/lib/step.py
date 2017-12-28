@@ -27,7 +27,7 @@ def train(sess, task_config, nn, dataset):
     batch_index = 0
     pbar = progressbar(dataset.batch_num(task_config.batch_size))
 
-    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size):
+    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=True, round_end=True):
         # 準備feed_dict
         feed_dict = dict()
         for key, placeholder in nn.ph_input.items():
@@ -53,6 +53,9 @@ def train(sess, task_config, nn, dataset):
 
     current_step = tf.train.global_step(sess, nn.global_step)
     loss /= dataset.n_sample
+
+    label_gold = label_gold[:dataset.n_sample]
+    label_predict = label_predict[:dataset.n_sample]
     accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
     return accuracy, loss, current_step
 
@@ -73,7 +76,7 @@ def trial(sess, task_config, nn, dataset):
     batch_index = 0
     pbar = progressbar(dataset.batch_num(task_config.batch_size))
 
-    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size):
+    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=True, round_end=True):
         # 準備feed_dict
         feed_dict = dict()
         feed_dict[nn.dropout_keep_prob] = 1.
@@ -97,6 +100,8 @@ def trial(sess, task_config, nn, dataset):
         pbar.update(batch_index)
     pbar.finish()
 
+    label_gold = label_gold[:dataset.n_sample]
+    label_predict = label_predict[:dataset.n_sample]
     accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
     loss /= dataset.n_sample
     return accuracy, loss
@@ -110,7 +115,7 @@ def test(sess, task_config, nn, dataset):
     batch_index = 0
     pbar = progressbar(dataset.batch_num(task_config.batch_size))
 
-    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=False):
+    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=False, round_end=True):
         # 準備feed_dict
         feed_dict = dict()
         feed_dict[nn.dropout_keep_prob] = 1.
@@ -129,4 +134,5 @@ def test(sess, task_config, nn, dataset):
         pbar.update(batch_index)
     pbar.finish()
 
+    label_predict = label_predict[:dataset.n_sample]
     return label_predict

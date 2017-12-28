@@ -5,7 +5,7 @@
 import random
 
 
-def generate_index_batch(n, batch_size, shuffle=True):
+def generate_index_batch(n, batch_size, shuffle=True, round_end=False):
     indices = range(n)
     if shuffle:
         random.shuffle(indices)
@@ -13,10 +13,15 @@ def generate_index_batch(n, batch_size, shuffle=True):
     idx = 0
     while idx < n:
         next_idx = idx + batch_size
-        if next_idx <= n:
-            yield indices[idx:next_idx]
-        else:
-            yield indices[idx:]
+        ret_indices = indices[idx:next_idx]
+
+        if round_end and len(ret_indices) < batch_size:
+            size_diff = batch_size - len(ret_indices)
+            patch_indices = indices[:idx]
+            random.shuffle(patch_indices)
+            ret_indices.extend(patch_indices[:size_diff])
+
+        yield ret_indices
         idx = next_idx
 
 
@@ -33,8 +38,11 @@ class Dataset(object):
     def batch_num(self, batch_size):
         return len(list(generate_index_batch(self.n_sample, batch_size)))
 
-    def batch_iterate(self, keys, batch_size, shuffle=True):
-        for indices in generate_index_batch(self.n_sample, batch_size, shuffle):
+    def batch_iterate(self, keys, batch_size, shuffle, round_end):
+        """
+        [注] 由于部分神經網絡要求每一輪的batch_size相同, round_end=True在最后一輪當數據不足batch_size時隨機補滿
+        """
+        for indices in generate_index_batch(self.n_sample, batch_size, shuffle, round_end):
             subset_dict = dict()
             for key in keys:
                 source = self.sources[key]
@@ -59,3 +67,8 @@ class Dataset(object):
 
     def get(self, source_key):
         return self.sources[source_key]
+
+
+if __name__ == '__main__':
+    for b in generate_index_batch(10, 3, shuffle=True, round_end=True):
+        print b
