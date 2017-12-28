@@ -31,9 +31,10 @@ class Algorithm(BaseAlgorithm):
         label_gold = tf.placeholder(tf.int32, [None, ], name=const.LABEL_GOLD)
         prob_gold = tf.one_hot(label_gold, self.config.dim_output)
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y, labels=prob_gold), name=const.LOSS)
-        l2_loss = tf.constant(0., dtype=tf.float32)
-        l2_loss += tf.nn.l2_loss(w)
-        loss += self.config.l2_reg_lambda * l2_loss
+        if self.config.l2_reg_lambda is not None and self.config.l2_reg_lambda > 0:
+            l2_loss = tf.constant(0., dtype=tf.float32)
+            l2_loss += tf.nn.l2_loss(w)
+            loss += self.config.l2_reg_lambda * l2_loss
 
         global_step = tf.Variable(0, trainable=False, name=const.GLOBAL_STEP)
         learning_rate = tf.train.exponential_decay(
