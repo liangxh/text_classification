@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import json
 import os
 import time
@@ -41,33 +42,55 @@ class Glove(object):
         if os.path.exists(path):
             st = time.time()
             index = json.load(open(path, 'r'))
-            print 'load index', time.time() - st
+            print('load index: {}'.format(time.time() - st))
         else:
             st = time.time()
             index = cls.build_index(key)
-            print 'build index:', time.time() - st
+            print('build index: {}'.format(time.time() - st))
 
             st = time.time()
             cls.dump_index(index, key)
-            print 'write index:', time.time() - st
+            print('write index: {}'.format(time.time() - st))
         return index
 
     @classmethod
     def build_index(cls, key):
         path = config.path_to_glove(key)
         index = dict()
+
         with open(path, 'r') as file_obj:
-            offset = 0
-            for line in file_obj:
+            while True:
+                offset = file_obj.tell()
+                line = file_obj.readline()
+                if line == '':
+                    break
+
                 vocab = line[:line.find(' ')]
                 index[vocab] = offset
-                offset += len(line)
         return index
+
+    @classmethod
+    def test_build_index(cls, key):
+        """
+        測試build_index 是否正確
+        """
+        path = config.path_to_glove(key)
+        with open(path, 'r') as file_obj, open(path, 'r') as test_obj:
+            while True:
+                offset = file_obj.tell()
+                line = file_obj.readline()
+                if line == '':
+                    break
+
+                test_obj.seek(offset)
+                test_line = test_obj.readline()
+                assert(line == test_line)
+
+        print('test passed')
 
 
 def test():
-    glove = Glove('twitter.25d')
-    print glove.get('haha')
+    Glove.test_build_index('twitter.25d')
 
 
 if __name__ == '__main__':
