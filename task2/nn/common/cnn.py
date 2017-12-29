@@ -2,15 +2,15 @@
 import tensorflow as tf
 
 
-def build(ph_input, filter_num, kernel_size, func_activate=None):
-    if func_activate is None:
-        func_activate = tf.nn.relu
+def build(ph_input, filter_num, kernel_size, activation=None):
+    if activation is None:
+        activation = tf.nn.relu
 
     filter_shape = [kernel_size, ph_input.shape[-1].value, filter_num]
     w = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1))
     b = tf.Variable(tf.constant(0.1, shape=[filter_num]))
     conv = tf.nn.conv1d(ph_input, w, stride=1, padding='VALID')
-    h = func_activate(conv + b)     # [batch_size, seq_len - filter_size + 1, filter_num]
+    h = activation(conv + b)     # [batch_size, seq_len - filter_size + 1, filter_num]
 
     return h
 
