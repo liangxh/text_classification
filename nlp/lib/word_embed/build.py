@@ -17,7 +17,7 @@ class VocabIdMapping(object):
 
 
 def _build_random_vector(dim):
-    return np.random.normal(0., 1., dim)
+    return np.random.normal(0., 0.1, dim)
 
 
 def build_lookup_table(vocab_list, embedding):
@@ -26,7 +26,7 @@ def build_lookup_table(vocab_list, embedding):
     """
     lookup_table = list()
     lookup_table.append(np.zeros(embedding.dim))  # embedding vector for END
-    lookup_table.append(_build_random_vector(embedding.dim))  # embedding vector for UNKNOWN
+    lookup_table.append(np.zeros(embedding.dim))  # embedding vector for UNKNOWN
     for vocab in vocab_list:
         vec = embedding.get(vocab)
         if vec is None:
