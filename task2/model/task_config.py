@@ -2,6 +2,7 @@
 import os
 import yaml
 from task2.model.config import config
+import datetime
 
 
 class TaskConfig(object):
@@ -24,20 +25,25 @@ class TaskConfig(object):
     seq_len = None
     nickname = None
 
+    def __init__(self, **kwargs):
+        for name, value in kwargs.items():
+            self.__setattr__(name, value)
+        self.time_mark = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
+
     @classmethod
     def load(cls, filename):
         data = yaml.load(open(filename, 'r'))
-        task_config = cls()
-        for name, value in data.items():
-            task_config.__setattr__(name, value)
-        return task_config
+        return cls(**data)
 
     @property
     def dir_checkpoint(self):
+        dir_name = '{}_{}'.format(
+            self.nickname if self.nickname is not None else self.algorithm,
+            self.time_mark
+        )
         return os.path.join(
                 config.dir_train_checkpoint,
-                self.task_key,
-                self.nickname if self.nickname is not None else self.algorithm
+                self.task_key, dir_name
             )
 
     @property

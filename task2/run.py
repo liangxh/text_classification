@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-
 import datetime
 import importlib
 import os
@@ -8,6 +7,7 @@ import shutil
 import commandr
 import tensorflow as tf
 import task2
+from task2 import snapshot
 from task2.lib import step, evaluate
 from task2.lib.common import load_embedding
 from task2.model.task_config import TaskConfig
@@ -45,8 +45,8 @@ def check_checkpoint_directory(dir_name):
 def train(config_filename):
     # 加載配置
     task_config = TaskConfig.load(config_filename)
-    check_checkpoint_directory(task_config.dir_checkpoint)
-    shutil.copy(config_filename, os.path.join(task_config.dir_checkpoint, 'config'))
+    os.mkdir(task_config.dir_checkpoint)
+    shutil.copy(config_filename, os.path.join(task_config.dir_checkpoint, 'config.yaml'))
 
     # 選擇算法
     algorithm = get_algorithm(task_config.algorithm)(task_config)
@@ -88,11 +88,14 @@ def train(config_filename):
     print('')
     print('best_score on dev: {}'.format(best_dev_score))
     print('best_epoch: {}'.format(best_epoch))
+    print('model has been saved at: {}'.format(task_config.dir_checkpoint))
+    snapshot.create(config_filename, best_dev_score, task_config.time_mark)
 
 
 @commandr.command('test')
-def test(config_filename):
+def test(dir_checkpoint):
     # 加載配置
+    config_filename = os.path.join(dir_checkpoint, 'config.yaml')
     task_config = TaskConfig.load(config_filename)
 
     # 選擇算法
@@ -104,7 +107,7 @@ def test(config_filename):
 
     with tf.Session() as sess:
         # 加載模型
-        prefix_checkpoint = tf.train.latest_checkpoint(task_config.dir_checkpoint)
+        prefix_checkpoint = tf.train.latest_checkpoint(dir_checkpoint)
         saver = tf.train.import_meta_graph("{}.meta".format(prefix_checkpoint))
         saver.restore(sess, prefix_checkpoint)
 
