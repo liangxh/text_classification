@@ -16,7 +16,7 @@ class Algorithm(BaseAlgorithm):
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
         rnn_cell_list = [
-            rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob)
+            rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob)
             for _ in range(self.config.n_rnn_layers)
         ]
 

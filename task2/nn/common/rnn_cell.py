@@ -20,3 +20,10 @@ def build_gru(dim, dropout_keep_prob=None):
     if dropout_keep_prob is not None:
         cell = _dropout(cell, dropout_keep_prob)
     return cell
+
+
+def build_basic(dim, dropout_keep_prob=None):
+    cell = tf.nn.rnn_cell.BasicRNNCell(dim)
+    if dropout_keep_prob is not None:
+        cell = _dropout(cell, dropout_keep_prob)
+    return cell

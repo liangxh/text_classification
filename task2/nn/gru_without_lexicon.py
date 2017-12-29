@@ -42,7 +42,7 @@ class Algorithm(BaseAlgorithm):
                                    trainable=self.config.embedding_trainable)
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
         rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
-            rnn_cell.build_gru(self.config.dim_rnn, dropout_keep_prob),
+            rnn_cell.build_gru(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob),
             inputs=embedded,
             sequence_length=seq_len,
             dtype=tf.float32

@@ -15,8 +15,8 @@ class Algorithm(BaseAlgorithm):
                                    trainable=self.config.embedding_trainable)
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
-        cell_fw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob)
-        cell_bw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob)
+        cell_fw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob)
+        cell_bw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob)
 
         outputs, output_states = tf.nn.bidirectional_dynamic_rnn(
             cell_fw, cell_bw, embedded, seq_len,
