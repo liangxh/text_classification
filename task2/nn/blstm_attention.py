@@ -30,9 +30,6 @@ class Algorithm(BaseAlgorithm):
         dense_input = tf.concat([attention_output, lexicon_feat], axis=-1)
         y, w, b = dense.build(dense_input, self.config.dim_output)
 
-        # 預測標籤
-        label_predict = tf.cast(tf.argmax(y, 1), tf.int32, name=const.LABEL_PREDICT)
-
         # 計算loss
         label_gold = tf.placeholder(tf.int32, [None, ], name=const.LABEL_GOLD)
         prob_gold = tf.one_hot(label_gold, self.config.dim_output)
@@ -49,6 +46,11 @@ class Algorithm(BaseAlgorithm):
             decay_steps=self.config.learning_rate_decay_steps,
             decay_rate=self.config.learning_rate_decay_rate
         )
-        optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=global_step, name=const.OPTIMIZER)
+
+        # 預測標籤
+        tf.cast(tf.argmax(y, 1), tf.int32, name=const.LABEL_PREDICT)
+
+        # Optimizer
+        tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=global_step, name=const.OPTIMIZER)
 
         return self.build_from_graph(tf.get_default_graph())

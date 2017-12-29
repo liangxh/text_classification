@@ -1,0 +1,37 @@
+# task
+task_key: us2
+seq_len: 50
+
+# train
+epochs: 5
+dropout_keep_prob: 1.
+learning_rate_initial: 0.01
+learning_rate_decay_rate: 1.
+learning_rate_decay_steps: 10
+l2_reg_lambda: 0.
+
+# validation
+validate_interval: 1
+batch_size: 64
+
+# parameters got when data is loaded
+dim_embed:
+dim_lexicon_feat:
+dim_output:
+
+# embedding
+embedding_trainable: True
+n_vocab: 4000
+embedding_algorithm: glove
+embedding_key: twitter.50d
+# embedding_algorithm: word2vec
+# embedding_key: frederic_godin
+
+# model specific parameters
+algorithm: rcnn
+dim_context: 50
+dim_hidden: 50
+with_lexicon: False
+
+# output
+nickname:

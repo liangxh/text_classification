@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+Recurrent Convolutional Neural Networks for Text Classification
+Siwei Lai, Liheng Xu, Kang Liu, Jun Zhao
+"""
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
-from task2.nn.common import dense, rnn_cell
+from task2.nn.common import dense, cnn, rnn_cell
 
 
 class Algorithm(BaseAlgorithm):
@@ -15,19 +19,21 @@ class Algorithm(BaseAlgorithm):
                                    trainable=self.config.embedding_trainable)
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
-        cell_fw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob)
-        cell_bw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob)
-
+        cell_fw = rnn_cell.build_basic(self.config.dim_context)
+        cell_bw = rnn_cell.build_basic(self.config.dim_context)
         outputs, output_states = tf.nn.bidirectional_dynamic_rnn(
             cell_fw, cell_bw, embedded, seq_len,
             cell_fw.zero_state(self.config.batch_size, tf.float32),
             cell_bw.zero_state(self.config.batch_size, tf.float32)
         )
+        outputs_fw, outputs_bw = outputs
+        last_state = tf.concat([outputs_fw, embedded, outputs_bw], axis=-1)
+        last_state = tf.layers.dense(last_state, self.config.dim_hidden, tf.nn.tanh)
+        last_state = tf.reduce_max(last_state, axis=1)
 
-        output_state_fw, output_state_bw = output_states
-        dense_input = tf.concat([output_state_fw.h, output_state_bw.h, lexicon_feat], axis=1)
-
-        y, w, b = dense.build(dense_input, self.config.dim_output)
+        if self.config.with_lexicon:
+            last_state = tf.concat([last_state, lexicon_feat], axis=1)
+        y, w, b = dense.build(last_state, self.config.dim_output)
 
         # 計算loss
         label_gold = tf.placeholder(tf.int32, [None, ], name=const.LABEL_GOLD)

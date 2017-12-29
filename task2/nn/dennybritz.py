@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+參考論文: Yoon Kim (2014) Convolutional Neural Networks for Sentence Classification
+參考實現: Denny Britz
+    http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/
+"""
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
@@ -35,8 +40,8 @@ class Algorithm(BaseAlgorithm):
 
     def build_neural_network(self, lookup_table):
         token_id_seq = tf.placeholder(tf.int32, [None, self.config.seq_len], name=const.TOKEN_ID_SEQ)
-        #lexicon_feat = tf.placeholder(tf.float32, [None, self.config.dim_lexicon_feat], name=const.LEXICON_FEAT)
-        #seq_len = tf.placeholder(tf.int32, [None, ], name=const.SEQ_LEN)
+        # lexicon_feat = tf.placeholder(tf.float32, [None, self.config.dim_lexicon_feat], name=const.LEXICON_FEAT)
+        # seq_len = tf.placeholder(tf.int32, [None, ], name=const.SEQ_LEN)
         dropout_keep_prob = tf.placeholder(tf.float32, name=const.DROPOUT_KEEP_PROB)
         lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE,
                                    trainable=self.config.embedding_trainable)
@@ -57,9 +62,6 @@ class Algorithm(BaseAlgorithm):
         last_state = tf.nn.dropout(last_state, dropout_keep_prob)
         y, w, b = dense.build(last_state, self.config.dim_output)
 
-        # 預測標籤
-        label_predict = tf.cast(tf.argmax(y, 1), tf.int32, name=const.LABEL_PREDICT)
-
         # 計算loss
         label_gold = tf.placeholder(tf.int32, [None, ], name=const.LABEL_GOLD)
         prob_gold = tf.one_hot(label_gold, self.config.dim_output)
@@ -77,6 +79,11 @@ class Algorithm(BaseAlgorithm):
             decay_steps=self.config.learning_rate_decay_steps,
             decay_rate=self.config.learning_rate_decay_rate
         )
-        optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=global_step, name=const.OPTIMIZER)
+
+        # 預測標籤
+        tf.cast(tf.argmax(y, 1), tf.int32, name=const.LABEL_PREDICT)
+
+        # Optimizer
+        tf.train.AdamOptimizer(learning_rate).minimize(loss, global_step=global_step, name=const.OPTIMIZER)
 
         return self.build_from_graph(tf.get_default_graph())
