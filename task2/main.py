@@ -8,7 +8,7 @@ import shutil
 import commandr
 import tensorflow as tf
 import task2
-from task2.lib import step
+from task2.lib import step, evaluate
 from task2.lib.common import load_embedding
 from task2.model.task_config import TaskConfig
 
@@ -62,26 +62,31 @@ def train(config_filename):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.global_variables())
-        best_dev_accuracy = 0.
+        best_dev_score = 0.
         best_epoch = -1
 
         for epoch in range(task_config.epochs):
             print('[epoch {}]'.format(epoch))
 
-            train_accuracy, train_loss, current_step = step.train(sess, task_config, nn, dataset_train)
-            print('TRAIN: loss:{}, acc:{}'.format(train_loss, train_accuracy))
+            labels_gold, labels_predict, loss, current_step = step.train(sess, task_config, nn, dataset_train)
+            score_dict = evaluate.score(labels_gold, labels_predict)
+            print('TRAIN: loss:{}, precision:{}, score:{}'.format(
+                loss, score_dict['precision'], score_dict['macro_f1']))
 
             if (epoch + 1) % task_config.validate_interval == 0:
-                trial_accuracy, trial_loss = step.trial(sess, task_config, nn, dataset_trial)
-                print('TRIAL: loss:{}, acc:{}'.format(trial_loss, trial_accuracy))
+                labels_gold, labels_predict, trial_loss = step.trial(sess, task_config, nn, dataset_trial)
+                score_dict = evaluate.score(labels_gold, labels_predict)
+                print('TRAIN: loss:{}, precision:{}, score:{}'.format(
+                    loss, score_dict['precision'], score_dict['macro_f1']))
+                target_score = score_dict['macro_f1']
 
-                if trial_accuracy > best_dev_accuracy:
-                    best_dev_accuracy = trial_accuracy
+                if target_score > best_dev_score:
+                    best_dev_score = target_score
                     best_epoch = epoch
                     path = saver.save(sess, task_config.prefix_checkpoint, global_step=current_step)
                     print('new checkpoint saved to {}'.format(path))
     print('')
-    print('best_accuracy on dev:{}'.format(best_dev_accuracy))
+    print('best_score on dev: {}'.format(best_dev_score))
     print('best_epoch: {}'.format(best_epoch))
 
 

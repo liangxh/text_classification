@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
-import numpy as np
 from task2.model import const
 from progressbar import ProgressBar, Percentage, Bar, ETA
 
@@ -20,8 +19,8 @@ def train(sess, task_config, nn, dataset):
     feed_keys.append(const.LABEL_GOLD)
 
     loss = 0.
-    label_gold = list()
-    label_predict = list()
+    labels_gold = list()
+    labels_predict = list()
 
     # 初始化progressbar
     batch_index = 0
@@ -43,8 +42,8 @@ def train(sess, task_config, nn, dataset):
 
         # 更新本輪記錄
         loss += partial_loss * subset_size
-        label_gold.extend(subset[const.LABEL_GOLD])
-        label_predict.extend(partial_labels)
+        labels_gold.extend(subset[const.LABEL_GOLD])
+        labels_predict.extend(partial_labels)
 
         # 更新progressbar
         batch_index += 1
@@ -54,10 +53,9 @@ def train(sess, task_config, nn, dataset):
     current_step = tf.train.global_step(sess, nn.global_step)
     loss /= dataset.n_sample
 
-    label_gold = label_gold[:dataset.n_sample]
-    label_predict = label_predict[:dataset.n_sample]
-    accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
-    return accuracy, loss, current_step
+    labels_gold = labels_gold[:dataset.n_sample]
+    labels_predict = labels_predict[:dataset.n_sample]
+    return labels_gold, labels_predict, loss, current_step
 
 
 def trial(sess, task_config, nn, dataset):
@@ -69,8 +67,8 @@ def trial(sess, task_config, nn, dataset):
     feed_keys.append(const.LABEL_GOLD)
 
     loss = 0.
-    label_gold = list()
-    label_predict = list()
+    labels_gold = list()
+    labels_predict = list()
 
     # 初始化progressbar
     batch_index = 0
@@ -92,24 +90,23 @@ def trial(sess, task_config, nn, dataset):
 
         # 更新本輪記錄
         loss += partial_loss * subset_size
-        label_gold.extend(subset[const.LABEL_GOLD])
-        label_predict.extend(partial_labels)
+        labels_gold.extend(subset[const.LABEL_GOLD])
+        labels_predict.extend(partial_labels)
 
         # 更新progressbar
         batch_index += 1
         pbar.update(batch_index)
     pbar.finish()
 
-    label_gold = label_gold[:dataset.n_sample]
-    label_predict = label_predict[:dataset.n_sample]
-    accuracy = np.mean(np.asarray(label_gold) == np.asarray(label_predict))
+    labels_gold = labels_gold[:dataset.n_sample]
+    labels_predict = labels_predict[:dataset.n_sample]
     loss /= dataset.n_sample
-    return accuracy, loss
+    return labels_gold, labels_predict, loss
 
 
 def test(sess, task_config, nn, dataset):
     feed_keys = nn.input_keys()
-    label_predict = list()
+    labels_predict = list()
 
     # 初始化progressbar
     batch_index = 0
@@ -127,12 +124,12 @@ def test(sess, task_config, nn, dataset):
             nn.label_predict,
             feed_dict=feed_dict
         )
-        label_predict.extend(partial_labels)
+        labels_predict.extend(partial_labels)
 
         # 更新progressbar
         batch_index += 1
         pbar.update(batch_index)
     pbar.finish()
 
-    label_predict = label_predict[:dataset.n_sample]
-    return label_predict
+    labels_predict = labels_predict[:dataset.n_sample]
+    return labels_predict
