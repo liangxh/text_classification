@@ -57,6 +57,7 @@ def train(config_filename):
     dataset_trial = algorithm.load_and_prepare_dataset('trial', vocab_id_map=vocab_id_mapping.map)
 
     # 生成神經網絡
+    task_config.set_learning_rate_decay_steps(dataset_train.batch_num(task_config.batch_size))
     nn = algorithm.build_neural_network(lookup_table)
 
     with tf.Session() as sess:

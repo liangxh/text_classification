@@ -7,7 +7,6 @@ epochs: 5
 dropout_keep_prob: 1.
 learning_rate_initial: 0.01
 learning_rate_decay_rate: 1.
-learning_rate_decay_steps: 10
 l2_reg_lambda: 0.2
 
 # validation

@@ -46,6 +46,9 @@ class TaskConfig(object):
                 self.task_key, dir_name
             )
 
+    def set_learning_rate_decay_steps(self, steps):
+        self.learning_rate_decay_steps = steps
+
     @property
     def prefix_checkpoint(self):
         return os.path.join(self.dir_checkpoint, 'model')
