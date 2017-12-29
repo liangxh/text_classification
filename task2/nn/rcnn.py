@@ -6,7 +6,7 @@ Siwei Lai, Liheng Xu, Kang Liu, Jun Zhao
 import tensorflow as tf
 from task2.model import const
 from task2.nn.base import BaseAlgorithm
-from task2.nn.common import dense, cnn, rnn_cell
+from task2.nn.common import dense, rnn_cell
 
 
 class Algorithm(BaseAlgorithm):
@@ -33,6 +33,8 @@ class Algorithm(BaseAlgorithm):
 
         if self.config.with_lexicon:
             last_state = tf.concat([last_state, lexicon_feat], axis=1)
+
+        last_state = tf.nn.dropout(last_state, dropout_keep_prob)
         y, w, b = dense.build(last_state, self.config.dim_output)
 
         # 計算loss
