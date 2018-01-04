@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import datetime
 import importlib
 import os
 import shutil
 import commandr
 import tensorflow as tf
 import task2
-from task2 import snapshot
+from task2.snapshot import Snapshot
 from task2.lib import step, evaluate
 from task2.lib.common import load_embedding
 from task2.model.task_config import TaskConfig
@@ -18,35 +17,15 @@ def get_algorithm(name):
     return module.Algorithm
 
 
-def check_checkpoint_directory(dir_name):
-    if os.path.exists(dir_name):
-        print (
-            '<INFO> Checkout point directory already exists\n' +
-            '\t[0] exit\n' +
-            '\t[1] remove it: rm -r {}\n'.format(dir_name) +
-            '\t[2] or rename it: mv {}{{,.{}}}'.format(
-                dir_name, datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
-            )
-        )
-        ret = input('choose: ')
-        if ret == 0:
-            exit()
-        elif ret == 1:
-            shutil.rmtree(dir_name)
-        elif ret == 2:
-            shutil.move(dir_name, '{}.{}'.format(dir_name, datetime.datetime.now().strftime('%Y%m%dT%H%M%S')))
-        else:
-            raise Exception('invalid reply: {}'.format(ret))
-
-    os.mkdir(dir_name)
-
-
 @commandr.command('train')
 def train(config_filename):
     # 加載配置
     task_config = TaskConfig.load(config_filename)
     os.mkdir(task_config.dir_checkpoint)
     shutil.copy(config_filename, os.path.join(task_config.dir_checkpoint, 'config.yaml'))
+
+    snapshot = Snapshot(config_filename, task_config.time_mark)
+    snapshot.create()
 
     # 選擇算法
     algorithm = get_algorithm(task_config.algorithm)(task_config)
@@ -90,7 +69,7 @@ def train(config_filename):
     print('best_score on dev: {}'.format(best_dev_score))
     print('best_epoch: {}'.format(best_epoch))
     print('model has been saved at: {}'.format(task_config.dir_checkpoint))
-    snapshot.create(config_filename, best_dev_score, task_config.time_mark)
+    snapshot.rename_by_score(best_dev_score)
 
 
 @commandr.command('trial')

@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+snapshot只保存神經網絡的代碼和該次運行的config
+理論上基於相同的代碼和config能复現結果
+"""
+
 from __future__ import print_function
 import os
 import shutil
@@ -12,33 +17,46 @@ if not os.path.exists(dir_snapshot):
     os.mkdir(dir_snapshot)
 
 
-def create(filename_config, score, time_mark):
-    """
-    將config和對應神經網絡源碼備份
-    """
-    task_config = TaskConfig.load(filename_config)
+class Snapshot(object):
+    def __init__(self, filename_config, time_mark):
+        task_config = TaskConfig.load(filename_config)
+        self.filename_config = filename_config
+        self.algorithm = task_config.algorithm
+        self.task_key = task_config.task_key
+        self.time_mark = time_mark
+        self.init_dir_snapshot_run = None
 
-    dir_snapshot_task = os.path.join(dir_snapshot, task_config.task_key)
-    if not os.path.exists(dir_snapshot_task):
-        os.mkdir(dir_snapshot_task)
+    @property
+    def dir_snapshot_task(self):
+        return os.path.join(dir_snapshot, self.task_key)
 
-    dir_snapshot_run = os.path.join(
-        dir_snapshot_task, '{:04d}_{}_{}'.format(
-            int(score * 1000000), task_config.algorithm, time_mark
+    def create(self):
+        if not os.path.exists(self.dir_snapshot_task):
+            os.mkdir(self.dir_snapshot_task)
+
+        dir_snapshot_run = os.path.join(
+            self.dir_snapshot_task, '{}_{}'.format(self.algorithm, self.time_mark)
         )
-    )
-    os.mkdir(dir_snapshot_run)
+        os.mkdir(dir_snapshot_run)
+        self.init_dir_snapshot_run = dir_snapshot_run
 
-    src_code = os.path.join(config.dir_task2_src, 'nn', '{}.py'.format(task_config.algorithm))
-    dest_code = os.path.join(dir_snapshot_run, '{}.py'.format(task_config.algorithm))
+        src_code = os.path.join(config.dir_task2_src, 'nn', '{}.py'.format(self.algorithm))
+        dest_code = os.path.join(dir_snapshot_run, '{}.py'.format(self.algorithm))
+        dest_config = os.path.join(dir_snapshot_run, 'config.yaml')
 
-    dest_config = os.path.join(dir_snapshot_run, filename_config.split('/')[-1])
+        shutil.copy(src_code, dest_code)
+        shutil.copy(self.filename_config, dest_config)
+        print('task2.snapshot[INFO] snapshot created at {}'.format(dir_snapshot_run))
 
-    shutil.copy(src_code, dest_code)
-    shutil.copy(filename_config, dest_config)
-    print('task2.snapshot[INFO] snapshot created at {}'.format(dir_snapshot_run))
+        notify_space(self.dir_snapshot_task, 1024)
 
-    notify_space(dir_snapshot_task, 1024)
+    def rename_by_score(self, score):
+        final_dir_snapshot_run = os.path.join(
+            self.dir_snapshot_task, '{:06d}_{}_{}'.format(
+                int(score * 1000000), self.algorithm, self.time_mark
+            )
+        )
+        shutil.move(self.init_dir_snapshot_run, final_dir_snapshot_run)
 
 
 def notify_space(dir_name, alert_size):
