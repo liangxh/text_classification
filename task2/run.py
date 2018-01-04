@@ -93,8 +93,8 @@ def train(config_filename):
     snapshot.create(config_filename, best_dev_score, task_config.time_mark)
 
 
-@commandr.command('test')
-def test(dir_checkpoint):
+@commandr.command('trial')
+def trial(dir_checkpoint):
     # 加載配置
     config_filename = os.path.join(dir_checkpoint, 'config.yaml')
     task_config = TaskConfig.load(config_filename)
@@ -117,11 +117,11 @@ def test(dir_checkpoint):
         nn = algorithm.build_from_graph(graph)
 
         # 預測
-        label_predict = step.test(sess, task_config, nn, dataset)
+        labels_predict = step.test(sess, task_config, nn, dataset)
 
-    import numpy as np
-    labels = task2.dataset.load_labels(task_config.task_key, 'trial')
-    print(np.mean(np.asarray(labels) == np.asarray(label_predict)))
+    labels_gold = task2.dataset.load_labels(task_config.task_key, 'trial')
+    score_dict = evaluate.score(labels_gold, labels_predict)
+    print(score_dict)
 
 
 if __name__ == '__main__':
