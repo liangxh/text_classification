@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import commandr
 from task2.lib import dataset
 
@@ -8,8 +9,8 @@ def build_lexicon_feat(key, mode):
     """
     生成lexicon feature，需要運行終端腳本，此處僅供提醒
     """
-    print 'place execute the following command in the base'
-    print 'bash ${HOME}' + '/lab/text_classification/task2/scripts/affective_tweets_feature.sh {} {}'.format(mode, key)
+    print('place execute the following command in the base')
+    print('bash ${HOME}' + '/lab/text_classification/task2/scripts/affective_tweets_feature.sh {} {}'.format(mode, key))
 
 
 @commandr.command('tokenize')
@@ -88,6 +89,33 @@ def dataset_statics(key, mode):
     """
     max_seq_len = max(*map(len, dataset.load_tokenized(key, mode)))
     return max_seq_len
+
+
+@commandr.command('no_trial')
+def dataset_subset(in_key, out_key):
+    """
+    生成數據集子集, 為便於調試神經網絡用
+    """
+    train_texts = map(lambda tokens: ' '.join(tokens), dataset.load_tokenized(in_key, 'train'))
+    trial_texts = map(lambda tokens: ' '.join(tokens), dataset.load_tokenized(in_key, 'trial'))
+    trial_texts_set = set(trial_texts)
+    idx_set = set()
+    for idx, text in enumerate(train_texts):
+        if text in trial_texts_set:
+            idx_set.add(idx)
+    print('{} duplicate found'.format(len(idx_set)))
+
+    def transfer(path_to):
+        in_filename = path_to(in_key, 'train')
+        out_filename = path_to(out_key, 'train')
+        with open(in_filename, 'r') as in_obj, open(out_filename, 'w') as out_obj:
+            for idx, line in enumerate(in_obj):
+                if idx not in idx_set:
+                    out_obj.write(line)
+
+    transfer(dataset.path_to_labels)
+    transfer(dataset.path_to_tokenized)
+    transfer(dataset.path_to_lexicon_feat)
 
 
 if __name__ == '__main__':
