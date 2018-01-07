@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import commandr
-import task2
-from task2.lib import evaluate
 import math
 import numpy as np
+from scipy import sparse
 from sklearn.svm import LinearSVC
 from progressbar import ProgressBar, Percentage, Bar, ETA
+import task2
+from task2.lib import evaluate
+from collections import defaultdict
 
 
 def progressbar(maxval):
@@ -80,11 +82,17 @@ class TfIdfTransformer(object):
         self.token_idx = token_idx
 
     def to_vec(self, seq):
-        tf_vec = np.zeros(self.dim + 1)
+        tf_vec = np.zeros(self.dim)
+
+        tf = defaultdict(lambda: 0)
         for token in seq:
-            tf_vec[self.token_idx.get(token, self.dim)] += 1
-        tf_vec = tf_vec[:-1]
-        vec = self.idf_vec * tf_vec
+            tf[self.token_idx.get(token, None)] += 1
+
+        vec = np.zeros(self.dim)
+        for idx, f in tf.items():
+            if idx is None:
+                continue
+            vec[idx] = f * self.idf_vec[idx]
 
         vec_sum = np.sum(vec)
         if vec_sum > 0:
@@ -94,22 +102,42 @@ class TfIdfTransformer(object):
 
 @commandr.command('run')
 def run(key, dim=100000):
-    transformer = TfIdfTransformer()
-    train_tokenized = task2.dataset.load_tokenized(key, 'train')
-    train_labels = task2.dataset.load_labels(key, 'train')
-    trial_tokenized = task2.dataset.load_tokenized(key, 'trial')
-    trial_labels = task2.dataset.load_labels(key, 'trial')
 
-    print('calculating tf-idf')
-    map(transformer.encounter, train_tokenized)
-    transformer.init_vec_config(dim)
+    def build_transformer():
+        transformer = TfIdfTransformer()
+        train_tokenized = task2.dataset.load_tokenized(key, 'train')
+
+        print('calculating tf-idf')
+        map(transformer.encounter, train_tokenized)
+        transformer.init_vec_config(dim)
+        return transformer
+
+    transformer = build_transformer()
+
+    def load(mode):
+        tokenized = task2.dataset.load_tokenized(key, mode)
+        labels = task2.dataset.load_labels(key, mode)
+
+        batch_index = 0
+        pbar = progressbar(len(tokenized))
+
+        vecs = list()
+        for tokens in tokenized:
+            vec = transformer.to_vec(tokens)
+            vec = sparse.csr.csr_matrix(vec)
+            vecs.append(vec)
+
+            # 更新progressbar
+            batch_index += 1
+            pbar.update(batch_index)
+        pbar.finish()
+
+        vecs = sparse.vstack(vecs)
+        return vecs, labels
 
     print('building vectors')
-    train_vecs = map(transformer.to_vec, train_tokenized)
-    trial_vecs = map(transformer.to_vec, trial_tokenized)
-
-    train_input = train_vecs
-    trial_input = trial_vecs
+    train_input, train_labels = load('train')
+    trial_input, trial_labels = load('trial')
 
     print('start learning..')
     model = LinearSVC(verbose=1)
@@ -126,6 +154,8 @@ def run(key, dim=100000):
 
 @commandr.command('run_lex')
 def run_lex(key, dim=100000):
+    dim = int(dim)
+
     transformer = TfIdfTransformer()
     train_tokenized = task2.dataset.load_tokenized(key, 'train')
     train_labels = task2.dataset.load_labels(key, 'train')
