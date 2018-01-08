@@ -102,6 +102,7 @@ class TfIdfTransformer(object):
 
 @commandr.command('run')
 def run(key, dim=100000):
+    dim = int(dim)
 
     def build_transformer():
         transformer = TfIdfTransformer()
