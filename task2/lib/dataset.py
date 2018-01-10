@@ -56,6 +56,18 @@ def load_tokenized(key, mode):
     return tokenized_list
 
 
+def load_tokenized_as_texts(key, mode):
+    path = path_to_tokenized(key, mode)
+    with open(path, 'r') as file_obj:
+        texts = list()
+        for line in file_obj:
+            line = line.strip()
+            if line == '':
+                continue
+            texts.append(line)
+    return texts
+
+
 def load_lexicon_feature(key, mode):
     path = path_to_lexicon_feat(key, mode)
     vecs = list()
