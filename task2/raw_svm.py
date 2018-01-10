@@ -9,14 +9,13 @@ from task2.lib import evaluate
 
 
 @commandr.command('linear')
-def linear(key):
+def linear(key, c=1.):
     tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
     vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
 
     X = vectorizer.fit_transform(task2.dataset.load_tokenized_as_texts(key, 'train'))
     labels_gold = task2.dataset.load_labels(key, 'train')
-    # self.model = SVC(C=5000)
-    model = LinearSVC(C=1)
+    model = LinearSVC(C=c, verbose=1)
     model.fit(X, labels_gold)
     labels_predict = model.predict(X)
     score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
@@ -36,7 +35,7 @@ def csupport(key, c=1., kernel='rbf'):
 
     X = vectorizer.fit_transform(task2.dataset.load_tokenized_as_texts(key, 'train'))
     labels_gold = task2.dataset.load_labels(key, 'train')
-    model = SVC(C=c, kernel=kernel)
+    model = SVC(C=c, kernel=kernel, verbose=1)
     model.fit(X, labels_gold)
     labels_predict = model.predict(X)
     score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
