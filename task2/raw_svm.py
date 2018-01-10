@@ -10,6 +10,7 @@ from task2.lib import evaluate
 
 @commandr.command('linear')
 def linear(key, c=1.):
+    c = float(c)
     tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
     vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
 
@@ -30,6 +31,7 @@ def linear(key, c=1.):
 
 @commandr.command('csupport')
 def csupport(key, c=1., kernel='rbf'):
+    c = float(c)
     tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
     vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
 
