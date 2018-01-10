@@ -113,6 +113,7 @@ def dataset_subset(in_key, out_key):
                 if idx not in idx_set:
                     out_obj.write(line)
 
+    transfer(dataset.path_to_texts)
     transfer(dataset.path_to_labels)
     transfer(dataset.path_to_tokenized)
     transfer(dataset.path_to_lexicon_feat)
