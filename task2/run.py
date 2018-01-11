@@ -42,7 +42,7 @@ def train(config_filename):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.global_variables())
-        best_dev_score = 0.
+        best_dev_score_dict = None
         best_epoch = -1
 
         for epoch in range(task_config.epochs):
@@ -58,18 +58,24 @@ def train(config_filename):
                 score_dict = evaluate.score(labels_gold, labels_predict)
                 print('TRAIN: loss:{}, precision:{}, score:{}'.format(
                     loss, score_dict['precision'], score_dict['macro_f1']))
-                target_score = score_dict['macro_f1']
 
-                if target_score > best_dev_score:
-                    best_dev_score = target_score
+                if best_dev_score_dict is None or score_dict['macro_f1'] > best_dev_score_dict['macro_f1']:
+                    best_dev_score_dict = score_dict
                     best_epoch = epoch
                     path = saver.save(sess, task_config.prefix_checkpoint, global_step=current_step)
                     print('new checkpoint saved to {}'.format(path))
     print('')
-    print('best_score on dev: {}'.format(best_dev_score))
     print('best_epoch: {}'.format(best_epoch))
+
+    col_line = ''
+    val_line = ''
+    for key, value in best_dev_score_dict.items():
+        col_line += '[{}]\t'.format(key)
+        val_line += '{:4f}\t'.format(value)
+    print(col_line)
+    print(val_line)
     print('model has been saved at: {}'.format(task_config.dir_checkpoint))
-    snapshot.rename_by_score(best_dev_score)
+    snapshot.rename_by_score(best_dev_score_dict['macro_f1'])
 
 
 @commandr.command('trial')
@@ -100,7 +106,14 @@ def trial(dir_checkpoint):
 
     labels_gold = task2.dataset.load_labels(task_config.task_key, 'trial')
     score_dict = evaluate.score(labels_gold, labels_predict)
-    print(score_dict)
+
+    col_line = ''
+    val_line = ''
+    for key, value in score_dict.items():
+        col_line += '[{}]\t'.format(key)
+        val_line += '{:4f}\t'.format(value)
+    print(col_line)
+    print(val_line)
 
 
 if __name__ == '__main__':
