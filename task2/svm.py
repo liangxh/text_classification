@@ -11,6 +11,10 @@ from scipy import sparse
 
 @commandr.command('linear')
 def linear(key, c=1.):
+    """
+    線性SVM
+    輸入只用Tf-Idf
+    """
     c = float(c)
     tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
     vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
@@ -30,8 +34,40 @@ def linear(key, c=1.):
     print('[TRIAL]', score_dict)
 
 
+@commandr.command('lex')
+def lex(key, c=1.):
+    """
+    線性SVM
+    輸入只用lexicon feature
+    """
+
+    c = float(c)
+
+    lexicon_feat = task2.dataset.load_lexicon_feature(key, 'train')
+    X = lexicon_feat
+
+    labels_gold = task2.dataset.load_labels(key, 'train')
+    model = LinearSVC(C=c, verbose=1)
+    model.fit(X, labels_gold)
+    labels_predict = model.predict(X)
+    score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
+    print('[TRAIN]', score_dict)
+
+    lexicon_feat = task2.dataset.load_lexicon_feature(key, 'trial')
+    X = lexicon_feat
+
+    labels_gold = task2.dataset.load_labels(key, 'trial')
+    labels_predict = model.predict(X)
+    score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
+    print('[TRIAL]', score_dict)
+
+
 @commandr.command('llex')
 def llex(key, c=1.):
+    """
+    線性SVM
+    輸入使用Tf-Idf + lexicon_feature
+    """
     c = float(c)
     tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
     vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
@@ -58,6 +94,9 @@ def llex(key, c=1.):
 
 @commandr.command('csupport')
 def csupport(key, c=1., kernel='rbf'):
+    """
+    核SVM
+    """
     c = float(c)
     tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
     vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
