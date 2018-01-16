@@ -29,16 +29,23 @@ class Algorithm(BaseAlgorithm):
                 dense_input.append(rnn_last_states)
 
         last_lex = lexicon_feat
-        for dim in self.config.dim_lex_dense:
-            last_lex, _, _ = dense.build(last_lex, dim, activation=tf.nn.tanh)
+        if self.config.dim_lex_dense is not None:
+            for dim in self.config.dim_lex_dense:
+                last_lex, _, _ = dense.build(last_lex, dim, activation=tf.nn.tanh)
         dense_input.append(last_lex)
 
         dense_input = tf.concat(dense_input, axis=1)
 
         if self.config.max_out == 1:
-            y, w, b = dense.build(dense_input, self.config.dim_output)
+            if self.config.output_bias:
+                y, w, b = dense.build(dense_input, self.config.dim_output)
+            else:
+                y, w = dense.build(dense_input, self.config.dim_output, bias=False)
         else:
-            y, w, b = dense.build(dense_input, self.config.dim_output * self.config.max_out)
+            if self.config.output_bias:
+                y, w, b = dense.build(dense_input, self.config.dim_output * self.config.max_out)
+            else:
+                y, w = dense.build(dense_input, self.config.dim_output * self.config.max_out, bias=False)
             y = tf.reshape(y, [-1, self.config.dim_output, self.config.max_out])
             y = tf.reduce_max(y, axis=-1)
 

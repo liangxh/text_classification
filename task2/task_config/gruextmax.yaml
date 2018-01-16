@@ -30,12 +30,13 @@ embedding_key: twitter.50d
 algorithm: gruextmax
 dim_rnn:
   - 64
-  - 32
+#  - 32
 
 dim_lex_dense:
   - 64
   - 32
 
+output_bias: True
 max_out: 3
 
 # output
