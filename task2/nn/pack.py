@@ -22,3 +22,6 @@ class NNPack(object):
 
     def input_keys(self):
         return self.ph_input.keys()
+
+    def get_input(self, key):
+        return self.ph_input[key]

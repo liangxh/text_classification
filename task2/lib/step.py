@@ -17,6 +17,7 @@ def train(sess, task_config, nn, dataset):
     feed_keys = list()
     feed_keys.extend(nn.input_keys())
     feed_keys.append(const.LABEL_GOLD)
+    feed_keys = filter(lambda key: key != const.IS_TRAINING, feed_keys)
 
     loss = 0.
     labels_gold = list()
@@ -30,7 +31,10 @@ def train(sess, task_config, nn, dataset):
         # 準備feed_dict
         feed_dict = dict()
         for key, placeholder in nn.ph_input.items():
-            feed_dict[placeholder] = subset[key]
+            if key == const.IS_TRAINING:
+                feed_dict[nn.get_input(const.IS_TRAINING)] = True
+            else:
+                feed_dict[placeholder] = subset[key]
         feed_dict[nn.label_gold] = subset[const.LABEL_GOLD]
         feed_dict[nn.dropout_keep_prob] = task_config.dropout_keep_prob
 
@@ -65,6 +69,7 @@ def trial(sess, task_config, nn, dataset):
     # 準備feed_dict需要的key
     feed_keys = nn.input_keys()
     feed_keys.append(const.LABEL_GOLD)
+    feed_keys = filter(lambda key: key != const.IS_TRAINING, feed_keys)
 
     loss = 0.
     labels_gold = list()
@@ -79,7 +84,10 @@ def trial(sess, task_config, nn, dataset):
         feed_dict = dict()
         feed_dict[nn.dropout_keep_prob] = 1.
         for key, placeholder in nn.ph_input.items():
-            feed_dict[placeholder] = subset[key]
+            if key == const.IS_TRAINING:
+                feed_dict[nn.get_input(const.IS_TRAINING)] = True
+            else:
+                feed_dict[placeholder] = subset[key]
         feed_dict[nn.label_gold] = subset[const.LABEL_GOLD]
 
         # 驗證
@@ -108,6 +116,11 @@ def test(sess, task_config, nn, dataset):
     feed_keys = nn.input_keys()
     labels_predict = list()
 
+    # 準備feed_dict需要的key
+    feed_keys = nn.input_keys()
+    feed_keys.append(const.LABEL_GOLD)
+    feed_keys = filter(lambda key: key != const.IS_TRAINING, feed_keys)
+
     # 初始化progressbar
     batch_index = 0
     pbar = progressbar(dataset.batch_num(task_config.batch_size))
@@ -117,7 +130,10 @@ def test(sess, task_config, nn, dataset):
         feed_dict = dict()
         feed_dict[nn.dropout_keep_prob] = 1.
         for key, placeholder in nn.ph_input.items():
-            feed_dict[placeholder] = subset[key]
+            if key == const.IS_TRAINING:
+                feed_dict[nn.get_input(const.IS_TRAINING)] = True
+            else:
+                feed_dict[placeholder] = subset[key]
 
         # 預測
         partial_labels = sess.run(

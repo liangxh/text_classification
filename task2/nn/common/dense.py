@@ -21,3 +21,11 @@ def build(ph_input, dim_output, activation=None, bias=True):
         return y, w, b
     else:
         return y, w
+
+
+def batch_norm(ph_input, ph_training, dim_output, activation=None):
+    last_state = tf.contrib.layers.fully_connected(ph_input, dim_output, activation_fn=None)
+    last_state = tf.contrib.layers.batch_norm(last_state, center=True, scale=True, is_training=ph_training)
+    if activation is not None:
+        last_state = activation(last_state)
+    return last_state
