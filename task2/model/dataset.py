@@ -3,6 +3,7 @@
 訓練/測試過程中用於遍歷數據和獲取數據相關信息
 """
 import random
+from collections import defaultdict
 
 
 def generate_index_batch(n, batch_size, shuffle=True, round_end=False):
@@ -43,6 +44,31 @@ class Dataset(object):
         [注] 由于部分神經網絡要求每一輪的batch_size相同, round_end=True在最后一輪當數據不足batch_size時隨機補滿
         """
         for indices in generate_index_batch(self.n_sample, batch_size, shuffle, round_end):
+            subset_dict = dict()
+            for key in keys:
+                source = self.sources[key]
+                subset = map(lambda idx: source[idx], indices)
+                subset_dict[key] = subset
+            yield len(indices), subset_dict
+
+    def batch_iterate_balance(self, keys, batch_size, shuffle, round_end):
+        from task2.model import const
+        labels = self.sources[const.LABEL_GOLD]
+        label_idx = defaultdict(lambda: list())
+        for idx, label in enumerate(labels):
+            label_idx[label].append(idx)
+
+        max_count = max(*map(len, label_idx.values()))
+        n_label = max(*labels) + 1
+        for indices_ in generate_index_batch(n_label * max_count, batch_size, shuffle, round_end):
+            indices = list()
+            for idx_ in indices_:
+                gold = idx_ / max_count
+                remain = idx_ % max_count
+                bias = remain % len(label_idx[gold])
+                idx = label_idx[gold][bias]
+                indices.append(idx)
+
             subset_dict = dict()
             for key in keys:
                 source = self.sources[key]
