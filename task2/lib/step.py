@@ -17,7 +17,7 @@ def train(sess, task_config, nn, dataset):
     feed_keys = list()
     feed_keys.extend(nn.input_keys())
     feed_keys.append(const.LABEL_GOLD)
-    feed_keys = filter(lambda key: key != const.IS_TRAINING, feed_keys)
+    feed_keys = filter(lambda key: key not in {const.IS_TRAINING, const.CLASS_WEIGHTS}, feed_keys)
 
     loss = 0.
     labels_gold = list()
@@ -33,6 +33,11 @@ def train(sess, task_config, nn, dataset):
         for key, placeholder in nn.ph_input.items():
             if key == const.IS_TRAINING:
                 feed_dict[nn.get_input(const.IS_TRAINING)] = True
+            elif key == const.CLASS_WEIGHTS:
+                feed_dict[nn.get_input(const.CLASS_WEIGHTS)] = map(
+                    lambda label: dataset.class_weight(label),
+                    subset[const.LABEL_GOLD]
+                )
             else:
                 feed_dict[placeholder] = subset[key]
         feed_dict[nn.label_gold] = subset[const.LABEL_GOLD]
@@ -69,7 +74,7 @@ def trial(sess, task_config, nn, dataset):
     # 準備feed_dict需要的key
     feed_keys = nn.input_keys()
     feed_keys.append(const.LABEL_GOLD)
-    feed_keys = filter(lambda key: key != const.IS_TRAINING, feed_keys)
+    feed_keys = filter(lambda key: key not in {const.IS_TRAINING, const.CLASS_WEIGHTS}, feed_keys)
 
     loss = 0.
     labels_gold = list()
@@ -86,6 +91,11 @@ def trial(sess, task_config, nn, dataset):
         for key, placeholder in nn.ph_input.items():
             if key == const.IS_TRAINING:
                 feed_dict[nn.get_input(const.IS_TRAINING)] = True
+            elif key == const.CLASS_WEIGHTS:
+                feed_dict[nn.get_input(const.CLASS_WEIGHTS)] = map(
+                    lambda label: dataset.class_weight(label),
+                    subset[const.LABEL_GOLD]
+                )
             else:
                 feed_dict[placeholder] = subset[key]
         feed_dict[nn.label_gold] = subset[const.LABEL_GOLD]
@@ -119,7 +129,7 @@ def test(sess, task_config, nn, dataset):
     # 準備feed_dict需要的key
     feed_keys = nn.input_keys()
     feed_keys.append(const.LABEL_GOLD)
-    feed_keys = filter(lambda key: key != const.IS_TRAINING, feed_keys)
+    feed_keys = filter(lambda key: key not in {const.IS_TRAINING, const.CLASS_WEIGHTS}, feed_keys)
 
     # 初始化progressbar
     batch_index = 0
@@ -132,6 +142,8 @@ def test(sess, task_config, nn, dataset):
         for key, placeholder in nn.ph_input.items():
             if key == const.IS_TRAINING:
                 feed_dict[nn.get_input(const.IS_TRAINING)] = True
+            elif key == const.CLASS_WEIGHTS:
+                pass
             else:
                 feed_dict[placeholder] = subset[key]
 

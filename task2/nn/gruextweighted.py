@@ -13,28 +13,38 @@ class Algorithm(BaseAlgorithm):
         lexicon_feat = tf.placeholder(tf.float32, [None, self.config.dim_lexicon_feat], name=const.LEXICON_FEAT)
         seq_len = tf.placeholder(tf.int32, [None, ], name=const.SEQ_LEN)
         dropout_keep_prob = tf.placeholder(tf.float32, name=const.DROPOUT_KEEP_PROB)
+
         lookup_table = tf.Variable(lookup_table, dtype=tf.float32, name=const.LOOKUP_TABLE,
                                    trainable=self.config.embedding_trainable)
+
         embedded = tf.nn.embedding_lookup(lookup_table, token_id_seq)
 
-        cell_fw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob)
-        cell_bw = rnn_cell.build_lstm(self.config.dim_rnn, dropout_keep_prob=dropout_keep_prob)
+        dense_input = list()
+        for idx, dim in enumerate(self.config.dim_rnn):
+            with tf.variable_scope('rnn_{}'.format(idx)):
+                rnn_outputs, rnn_last_states = tf.nn.dynamic_rnn(
+                    rnn_cell.build_gru(dim, dropout_keep_prob=dropout_keep_prob),
+                    inputs=embedded,
+                    sequence_length=seq_len,
+                    dtype=tf.float32
+                )
+                dense_input.append(rnn_last_states)
 
-        outputs, output_states = tf.nn.bidirectional_dynamic_rnn(
-            cell_fw, cell_bw, embedded, seq_len,
-            cell_fw.zero_state(self.config.batch_size, tf.float32),
-            cell_bw.zero_state(self.config.batch_size, tf.float32)
-        )
+        last_lex = lexicon_feat
+        for dim in self.config.dim_lex_dense:
+            last_lex, _, _ = dense.build(last_lex, dim, activation=tf.nn.tanh)
+        dense_input.append(last_lex)
 
-        output_state_fw, output_state_bw = output_states
-        dense_input = tf.concat([output_state_fw.h, output_state_bw.h, lexicon_feat], axis=1)
-
+        dense_input = tf.concat(dense_input, axis=1)
         y, w, b = dense.build(dense_input, self.config.dim_output)
 
         # 計算loss
         label_gold = tf.placeholder(tf.int32, [None, ], name=const.LABEL_GOLD)
-        prob_gold = tf.one_hot(label_gold, self.config.dim_output)
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y, labels=prob_gold), name=const.LOSS)
+        ph_class_weights = tf.placeholder(tf.float32, [None, ], name=const.CLASS_WEIGHTS)
+        loss = tf.reduce_mean(
+            tf.losses.sparse_softmax_cross_entropy(logits=y, labels=label_gold, weights=ph_class_weights),
+            name=const.LOSS
+        )
         if self.config.l2_reg_lambda is not None and self.config.l2_reg_lambda > 0:
             l2_loss = tf.constant(0., dtype=tf.float32)
             l2_loss += tf.nn.l2_loss(w)

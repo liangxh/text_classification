@@ -3,6 +3,7 @@
 訓練/測試過程中用於遍歷數據和獲取數據相關信息
 """
 import random
+from task2.model import const
 from collections import defaultdict
 
 
@@ -35,6 +36,21 @@ class Dataset(object):
 
         self.sources = source_dict
         self.n_sample = source_len_list[0]
+        self.class_weights = None
+
+    def class_weight(self, label):
+        if const.LABEL_GOLD not in self.sources:
+            raise Exception
+        if self.class_weights is None:
+            class_count = defaultdict(lambda: 0)
+            for label in self.sources[const.LABEL_GOLD]:
+                class_count[label] += 1
+            class_weights = dict()
+            for label, count in class_count.items():
+                class_weights[label] = 1./ count
+            self.class_weights = class_weights
+
+        return self.class_weights[label]
 
     def batch_num(self, batch_size):
         return len(list(generate_index_batch(self.n_sample, batch_size)))
@@ -67,7 +83,6 @@ class Dataset(object):
         return loop
 
     def batch_iterate_balance(self, keys, batch_size, shuffle, round_end):
-        from task2.model import const
         labels = self.sources[const.LABEL_GOLD]
         label_idx = defaultdict(lambda: list())
         for idx, label in enumerate(labels):
