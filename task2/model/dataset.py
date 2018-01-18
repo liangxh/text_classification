@@ -51,6 +51,21 @@ class Dataset(object):
                 subset_dict[key] = subset
             yield len(indices), subset_dict
 
+    def balance_batch_num(self, batch_size):
+        from task2.model import const
+        labels = self.sources[const.LABEL_GOLD]
+        label_idx = defaultdict(lambda: list())
+        for idx, label in enumerate(labels):
+            label_idx[label].append(idx)
+
+        max_count = max(*map(len, label_idx.values()))
+        n_label = max(*labels) + 1
+        n = max_count * n_label
+        loop = n / batch_size
+        if n % batch_size > 0:
+            loop += 1
+        return loop
+
     def batch_iterate_balance(self, keys, batch_size, shuffle, round_end):
         from task2.model import const
         labels = self.sources[const.LABEL_GOLD]

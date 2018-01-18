@@ -25,7 +25,7 @@ def train(sess, task_config, nn, dataset):
 
     # 初始化progressbar
     batch_index = 0
-    pbar = progressbar(dataset.batch_num(task_config.batch_size))
+    pbar = progressbar(dataset.balance_batch_num(task_config.batch_size))
 
     for subset_size, subset in dataset.batch_iterate_balance(feed_keys, task_config.batch_size, shuffle=True, round_end=True):
         # 準備feed_dict
