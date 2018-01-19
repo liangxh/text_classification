@@ -7,21 +7,37 @@ from sklearn.svm import LinearSVC, SVC
 import task2
 from task2.lib import evaluate
 from scipy import sparse
+from collections import defaultdict
+import math
 
 
 @commandr.command('linear')
-def linear(key, c=1.):
+def linear(key, c=1., weight=1.):
     """
     線性SVM
     輸入只用Tf-Idf
     """
+    class_weight = weight != 0
+
     c = float(c)
     tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
     vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
 
     X = vectorizer.fit_transform(task2.dataset.load_tokenized_as_texts(key, 'train'))
     labels_gold = task2.dataset.load_labels(key, 'train')
-    model = LinearSVC(C=c, verbose=1)
+
+    if class_weight:
+        class_count = defaultdict(lambda: 0.)
+        for label in labels_gold:
+            class_count[label] += 1
+        class_weights = dict()
+        for label, count in class_count.items():
+            class_weights[label] = 1./count
+
+        model = LinearSVC(C=c, verbose=1, class_weight=class_weights)
+    else:
+        model = LinearSVC(C=c, verbose=1)
+
     model.fit(X, labels_gold)
     labels_predict = model.predict(X)
     score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
@@ -40,7 +56,6 @@ def lex(key, c=1.):
     線性SVM
     輸入只用lexicon feature
     """
-
     c = float(c)
 
     lexicon_feat = task2.dataset.load_lexicon_feature(key, 'train')
@@ -63,7 +78,7 @@ def lex(key, c=1.):
 
 
 @commandr.command('llex')
-def llex(key, c=1.):
+def llex(key, c=1., weight=1.):
     """
     線性SVM
     輸入使用Tf-Idf + lexicon_feature
@@ -77,7 +92,20 @@ def llex(key, c=1.):
     X = sparse.hstack([X, lexicon_feat])
 
     labels_gold = task2.dataset.load_labels(key, 'train')
-    model = LinearSVC(C=c, verbose=1)
+
+    class_weight = weight != 0
+    if class_weight:
+        class_count = defaultdict(lambda: 0.)
+        for label in labels_gold:
+            class_count[label] += 1
+        class_weights = dict()
+        for label, count in class_count.items():
+            class_weights[label] = 1./count
+
+        model = LinearSVC(C=c, verbose=1, class_weight=class_weights)
+    else:
+        model = LinearSVC(C=c, verbose=1)
+
     model.fit(X, labels_gold)
     labels_predict = model.predict(X)
     score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
