@@ -128,7 +128,6 @@ def test(sess, task_config, nn, dataset):
 
     # 準備feed_dict需要的key
     feed_keys = nn.input_keys()
-    feed_keys.append(const.LABEL_GOLD)
     feed_keys = filter(lambda key: key not in {const.IS_TRAINING, const.CLASS_WEIGHTS}, feed_keys)
 
     # 初始化progressbar

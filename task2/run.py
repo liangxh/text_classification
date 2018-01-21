@@ -34,6 +34,7 @@ def train(config_filename):
     vocab_id_mapping, lookup_table = load_embedding(task_config)
     dataset_train = algorithm.load_and_prepare_dataset('train', vocab_id_map=vocab_id_mapping.map)
     dataset_trial = algorithm.load_and_prepare_dataset('trial', vocab_id_map=vocab_id_mapping.map)
+    dataset_test = algorithm.load_and_prepare_dataset('test', output=False, vocab_id_map=vocab_id_mapping.map)
 
     # 生成神經網絡
     task_config.set_learning_rate_decay_steps(dataset_train.batch_num(task_config.batch_size))
@@ -64,6 +65,11 @@ def train(config_filename):
                     best_epoch = epoch
                     path = saver.save(sess, task_config.prefix_checkpoint, global_step=current_step)
                     print('new checkpoint saved to {}'.format(path))
+
+                    labels_predict = step.test(sess, task_config, nn, dataset_test)
+                    with open(os.path.join(task_config.dir_checkpoint, 'test_predict.labels'), 'w') as file_obj:
+                        for label in labels_predict:
+                            file_obj.write('{}\n'.format(label))
     print('')
     print('best_epoch: {}'.format(best_epoch))
 
