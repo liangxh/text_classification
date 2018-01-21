@@ -10,6 +10,7 @@ from scipy import sparse
 from collections import defaultdict
 import math
 from sklearn.feature_selection import SelectFromModel
+from sklearn.multiclass import OneVsRestClassifier
 
 
 @commandr.command('linear')
@@ -173,6 +174,35 @@ def stack(key, c=1.):
     labels_gold = task2.dataset.load_labels(key, 'trial')
 
     X = feat_transformer.transform(X)
+    labels_predict = model.predict(X)
+    trial_score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
+
+    print('[TRAIN]', train_score_dict)
+    print('[TRIAL]', trial_score_dict)
+
+
+@commandr.command('ovr')
+def one_vs_rest(key, c=1.):
+    """
+    線性SVM
+    輸入只用Tf-Idf
+    """
+    c = float(c)
+    tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=False).tokenize
+    vectorizer = TfidfVectorizer(strip_accents="unicode", analyzer="word", tokenizer=tokenizer, stop_words=None)
+
+    X = vectorizer.fit_transform(task2.dataset.load_tokenized_as_texts(key, 'train'))
+    labels_gold = task2.dataset.load_labels(key, 'train')
+
+    model = OneVsRestClassifier(LinearSVC(C=c, verbose=1))
+    model.fit(X, labels_gold)
+
+    labels_predict = model.predict(X)
+    train_score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
+
+    X = vectorizer.transform(task2.dataset.load_tokenized_as_texts(key, 'trial'))
+    labels_gold = task2.dataset.load_labels(key, 'trial')
+
     labels_predict = model.predict(X)
     trial_score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
 

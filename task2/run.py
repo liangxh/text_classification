@@ -116,5 +116,36 @@ def trial(dir_checkpoint):
     print(val_line)
 
 
+@commandr.command('test')
+def test(dir_checkpoint, output_filename):
+    # 加載配置
+    config_filename = os.path.join(dir_checkpoint, 'config.yaml')
+    task_config = TaskConfig.load(config_filename)
+
+    # 選擇算法
+    algorithm = get_algorithm(task_config.algorithm)(task_config)
+
+    # 加載數據
+    vocab_id_mapping = load_embedding(task_config, return_lookup_table=False)
+    dataset = algorithm.load_and_prepare_dataset('test', output=False, vocab_id_map=vocab_id_mapping.map)
+
+    with tf.Session() as sess:
+        # 加載模型
+        prefix_checkpoint = tf.train.latest_checkpoint(dir_checkpoint)
+        saver = tf.train.import_meta_graph("{}.meta".format(prefix_checkpoint))
+        saver.restore(sess, prefix_checkpoint)
+
+        # 摘出測試需要的placeholder
+        graph = tf.get_default_graph()
+        nn = algorithm.build_from_graph(graph)
+
+        # 預測
+        labels_predict = step.test(sess, task_config, nn, dataset)
+
+    with open(output_filename, 'w') as file_obj:
+        for label in labels_predict:
+            file_obj.write('{}\n'.format(label))
+
+
 if __name__ == '__main__':
     commandr.Run()
