@@ -84,7 +84,7 @@ def trial(sess, task_config, nn, dataset):
     batch_index = 0
     pbar = progressbar(dataset.batch_num(task_config.batch_size))
 
-    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=True, round_end=True):
+    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=False, round_end=True):
         # 準備feed_dict
         feed_dict = dict()
         feed_dict[nn.dropout_keep_prob] = 1.
@@ -160,3 +160,45 @@ def test(sess, task_config, nn, dataset):
 
     labels_predict = labels_predict[:dataset.n_sample]
     return labels_predict
+
+
+def extract_feature(sess, task_config, nn, dataset):
+    feat_list = list()
+
+    # 準備feed_dict需要的key
+    feed_keys = nn.input_keys()
+    feed_keys = filter(lambda key: key not in {const.IS_TRAINING, const.CLASS_WEIGHTS}, feed_keys)
+
+    graph = tf.get_default_graph()
+    ph_feat = graph.get_operation_by_name('concat').outputs[0]
+
+    # 初始化progressbar
+    batch_index = 0
+    pbar = progressbar(dataset.batch_num(task_config.batch_size))
+
+    for subset_size, subset in dataset.batch_iterate(feed_keys, task_config.batch_size, shuffle=False, round_end=True):
+        # 準備feed_dict
+        feed_dict = dict()
+        feed_dict[nn.dropout_keep_prob] = 1.
+        for key, placeholder in nn.ph_input.items():
+            if key == const.IS_TRAINING:
+                feed_dict[nn.get_input(const.IS_TRAINING)] = True
+            elif key == const.CLASS_WEIGHTS:
+                pass
+            else:
+                feed_dict[placeholder] = subset[key]
+
+        # 預測
+        partial_feat = sess.run(
+            ph_feat,
+            feed_dict=feed_dict
+        )
+        feat_list.extend(partial_feat)
+
+        # 更新progressbar
+        batch_index += 1
+        pbar.update(batch_index)
+    pbar.finish()
+
+    feat_list = feat_list[:dataset.n_sample]
+    return feat_list
