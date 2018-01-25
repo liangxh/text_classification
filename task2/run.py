@@ -164,7 +164,6 @@ def feat(dir_checkpoint):
 
     # 加載數據
     vocab_id_mapping = load_embedding(task_config, return_lookup_table=False)
-    dataset = algorithm.load_and_prepare_dataset('test', output=False, vocab_id_map=vocab_id_mapping.map)
 
     with tf.Session() as sess:
         # 加載模型
@@ -177,12 +176,14 @@ def feat(dir_checkpoint):
         nn = algorithm.build_from_graph(graph)
 
         # 預測
-        feat_list = step.extract_feature(sess, task_config, nn, dataset)
+        for mode in ['train', 'trial', 'test']:
+            dataset = algorithm.load_and_prepare_dataset(mode, output=False, vocab_id_map=vocab_id_mapping.map)
+            feat_list = step.extract_feature(sess, task_config, nn, dataset)
 
-    output_filename = os.path.join(dir_checkpoint, 'concat.feat')
-    with open(output_filename, 'w') as file_obj:
-        for feat in feat_list:
-            file_obj.write(' '.join(map(str, feat)) + '\n')
+            output_filename = os.path.join(dir_checkpoint, '{}.feat'.format(mode))
+            with open(output_filename, 'w') as file_obj:
+                for feat in feat_list:
+                    file_obj.write(' '.join(map(str, feat)) + '\n')
 
 
 if __name__ == '__main__':
