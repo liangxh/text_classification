@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import commandr
+import os
 from nltk import TweetTokenizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC, SVC
@@ -166,6 +167,51 @@ def knn(key, n_neighbors=15, weights='uniform', lexicon=0.):
         X = sparse.hstack([X, lexicon_feat])
 
     labels_gold = task2.dataset.load_labels(key, 'trial')
+    labels_predict = model.predict(X)
+    trial_score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
+
+    print('[TRAIN]', train_score_dict)
+    print('[TRIAL]', trial_score_dict)
+
+
+@commandr.command('nn')
+def nn(dir_checkpoint, c=1.):
+    """
+    線性SVM
+    輸入只用Tf-Idf
+    """
+    from task2.model.task_config import TaskConfig
+    config_filename = os.path.join(dir_checkpoint, 'config.yaml')
+    task_config = TaskConfig.load(config_filename)
+    key = task_config.task_key
+
+    def load_feat(mode):
+        filename = os.path.join(dir_checkpoint, '{}.feat'.format(mode))
+
+        feat_list = list()
+        with open(filename, 'r') as file_obj:
+            for line in file_obj:
+                line = line.strip()
+                if line == '':
+                    continue
+                feat = map(float, line.split(' '))
+                feat_list.append(feat)
+        return feat_list
+
+    c = float(c)
+
+    X = load_feat('train')
+    labels_gold = task2.dataset.load_labels(key, 'train')
+
+    model = LinearSVC(C=c, verbose=1)
+    model.fit(X, labels_gold)
+
+    labels_predict = model.predict(X)
+    train_score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
+
+    X = load_feat('trial')
+    labels_gold = task2.dataset.load_labels(key, 'trial')
+
     labels_predict = model.predict(X)
     trial_score_dict = evaluate.score(labels_predict=labels_predict, labels_gold=labels_gold)
 
