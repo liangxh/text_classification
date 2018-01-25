@@ -154,7 +154,7 @@ def test(dir_checkpoint, output_filename):
 
 
 @commandr.command('feat')
-def feat(dir_checkpoint, output_filename):
+def feat(dir_checkpoint):
     # 加載配置
     config_filename = os.path.join(dir_checkpoint, 'config.yaml')
     task_config = TaskConfig.load(config_filename)
@@ -179,6 +179,7 @@ def feat(dir_checkpoint, output_filename):
         # 預測
         feat_list = step.extract_feature(sess, task_config, nn, dataset)
 
+    output_filename = os.path.join(dir_checkpoint, 'concat.feat')
     with open(output_filename, 'w') as file_obj:
         for feat in feat_list:
             file_obj.write(' '.join(map(str, feat)) + '\n')
